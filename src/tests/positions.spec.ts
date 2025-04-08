@@ -1,6 +1,6 @@
 
 import { test, expect } from '@playwright/test';
-import { setupWalletConnection, TEST_WALLET_ADDRESS } from './utils/setupWallet';
+import { setupWalletConnection, connectWallet, verifyWalletConnected, TEST_WALLET_ADDRESS } from './utils/setupWallet';
 import { takeScreenshot, initScreenshotsDir } from './utils/screenshotHelper';
 import { URLS } from './utils/constants';
 
@@ -21,6 +21,13 @@ test.describe('Krystal Positions Page Tests', () => {
     
     // Wait for the page to load completely
     await page.waitForLoadState('networkidle');
+    
+    // Connect wallet and verify connection
+    await connectWallet(page);
+    await verifyWalletConnected(page);
+    
+    // Take screenshot after wallet connection
+    await takeScreenshot(page, 'wallet-connected-positions');
     
     console.log('Page loaded successfully');
     

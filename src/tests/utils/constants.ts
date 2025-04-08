@@ -22,6 +22,13 @@ export const TIMEOUTS = {
  * Selectors used in tests
  */
 export const SELECTORS = {
+  CONNECT_WALLET_BUTTON: [
+    'button:has-text("Connect Wallet")', 
+    'button:has-text("Connect")',
+    '[role="button"]:has-text("Connect Wallet")',
+    '.connect-wallet-button',
+    'a:has-text("Connect Wallet")'
+  ],
   PERFORMANCE: [
     'text="Historical Performance"',
     'h2:has-text("Historical Performance")',

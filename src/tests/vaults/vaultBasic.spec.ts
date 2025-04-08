@@ -1,6 +1,6 @@
 
 import { test, expect, Page } from '@playwright/test';
-import { setupWalletConnection, TEST_WALLET_ADDRESS } from '../utils/setupWallet';
+import { setupWalletConnection, connectWallet, verifyWalletConnected, TEST_WALLET_ADDRESS } from '../utils/setupWallet';
 import { takeScreenshot, initScreenshotsDir } from '../utils/screenshotHelper';
 import { VaultListPage } from '../page-objects/VaultListPage';
 
@@ -13,7 +13,7 @@ test.describe('Krystal Vaults Basic Tests', () => {
     await setupWalletConnection(page);
   });
 
-  test('should load vaults page and verify UI elements', async ({ page }) => {
+  test('should load vaults page, connect wallet and verify UI elements', async ({ page }) => {
     console.log('Starting Vaults page test...');
     
     const vaultListPage = new VaultListPage(page);
@@ -21,6 +21,13 @@ test.describe('Krystal Vaults Basic Tests', () => {
     // Navigate to vaults page
     await vaultListPage.goto();
     await vaultListPage.waitForPageLoad();
+    
+    // Connect wallet and verify connection
+    await connectWallet(page);
+    await verifyWalletConnected(page);
+    
+    // Take screenshot after wallet connection
+    await takeScreenshot(page, 'wallet-connected-state');
     
     // Verify page title
     const pageTitle = await page.title();

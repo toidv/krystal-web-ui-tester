@@ -1,6 +1,6 @@
 
 import { test, expect } from '@playwright/test';
-import { setupWalletConnection } from '../utils/setupWallet';
+import { setupWalletConnection, connectWallet, verifyWalletConnected } from '../utils/setupWallet';
 import { takeScreenshot, initScreenshotsDir } from '../utils/screenshotHelper';
 import { VaultListPage } from '../page-objects/VaultListPage';
 import { VaultDetailPage } from '../page-objects/VaultDetailPage';
@@ -24,6 +24,13 @@ test.describe('Krystal Vault Details Tests', () => {
     // Visit the vaults page
     await vaultListPage.goto();
     await vaultListPage.waitForPageLoad();
+    
+    // Connect wallet and verify connection
+    await connectWallet(page);
+    await verifyWalletConnected(page);
+    
+    // Take screenshot after wallet connection
+    await takeScreenshot(page, 'wallet-connected-vault-detail');
     
     // 1. Sort vault list by APR DESC
     await vaultListPage.sortByAPR();
