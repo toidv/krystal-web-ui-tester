@@ -1,57 +1,11 @@
-import { test, expect, Page } from '@playwright/test';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Get directory name for current module (ESM equivalent of __dirname)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { test, expect } from '@playwright/test';
+import { setupWalletConnection, TEST_WALLET_ADDRESS } from './utils/setupWallet';
+import { takeScreenshot, initScreenshotsDir } from './utils/screenshotHelper';
+import { URLS } from './utils/constants';
 
-// Test wallet address to use
-const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
-const POSITIONS_URL = 'http://localhost:3000/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions';
-
-/**
- * Setup Web3 wallet connection and inject it into the browser context
- */
-async function setupWalletConnection(page: Page): Promise<void> {
-  // Inject Web3 and setup mock wallet provider
-  await page.addInitScript(() => {
-    // Mock the ethereum provider
-    const mockProvider = {
-      isMetaMask: true,
-      selectedAddress: '0x1822946a4f1a625044d93a468db6db756d4f89ff',
-      networkVersion: '1',
-      request: async ({ method }: { method: string }) => {
-        if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
-          return ['0x1822946a4f1a625044d93a468db6db756d4f89ff'];
-        }
-        return null;
-      },
-      on: () => {},
-      removeListener: () => {},
-    };
-
-    // Add ethereum provider to window
-    Object.defineProperty(window, 'ethereum', {
-      value: mockProvider,
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  // Instead of using require.resolve, we'll use a direct URL to a CDN for web3
-  await page.addInitScript({
-    content: `
-      // Load Web3 from CDN
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/web3@4.16.0/dist/web3.min.js';
-      script.async = true;
-      document.head.appendChild(script);
-    `
-  });
-
-  console.log('Web3 wallet connection setup completed');
-}
+// Initialize screenshots directory
+initScreenshotsDir();
 
 test.describe('Krystal Positions Page Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -63,7 +17,7 @@ test.describe('Krystal Positions Page Tests', () => {
     console.log('Starting Positions page test...');
     
     // Visit the positions page
-    await page.goto(POSITIONS_URL);
+    await page.goto(URLS.POSITIONS);
     
     // Wait for the page to load completely
     await page.waitForLoadState('networkidle');
@@ -71,7 +25,7 @@ test.describe('Krystal Positions Page Tests', () => {
     console.log('Page loaded successfully');
     
     // Take screenshot of initial page load
-    await page.screenshot({ path: 'screenshots/positions-page-initial.png' });
+    await takeScreenshot(page, 'positions-page-initial');
     
     // Verify page title
     const pageTitle = await page.title();
@@ -115,7 +69,7 @@ test.describe('Krystal Positions Page Tests', () => {
           console.log('Modal/detail panel opened successfully');
           
           // Take screenshot with modal open
-          await page.screenshot({ path: 'screenshots/positions-modal-open.png' });
+          await takeScreenshot(page, 'positions-modal-open');
           
           // Close the modal if there's a close button
           const closeButton = await page.locator('.modal button, [role="dialog"] button, .detail-panel button').first();
@@ -141,13 +95,13 @@ test.describe('Krystal Positions Page Tests', () => {
       await page.waitForTimeout(1000); // Wait for search results
       
       // Take screenshot of search results
-      await page.screenshot({ path: 'screenshots/positions-search-results.png' });
+      await takeScreenshot(page, 'positions-search-results');
     } else {
       console.log('No search input found on page');
     }
     
     // Final screenshot after all tests
-    await page.screenshot({ path: 'screenshots/positions-page-final.png' });
+    await takeScreenshot(page, 'positions-page-final');
     console.log('Test completed successfully');
   });
 });
