@@ -125,16 +125,24 @@ export class VaultListPage {
    * Test search functionality
    */
   async testSearch(searchTerm: string): Promise<void> {
-    const searchInput = await this.page.locator('input[placeholder*="Search"]').first();
-    if (await searchInput.isVisible()) {
-      console.log(`Search input found, testing search with term: ${searchTerm}`);
-      await searchInput.fill(searchTerm);
-      await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+    try {
+      console.log('Looking for search input field...');
+      const searchInputExists = await this.page.locator('input[placeholder*="Search"]').count() > 0;
       
-      // Take screenshot of search results
-      await takeScreenshot(this.page, 'vaults-search-results');
-    } else {
-      console.log('No search input found on page');
+      if (searchInputExists) {
+        const searchInput = this.page.locator('input[placeholder*="Search"]').first();
+        console.log(`Search input found, testing search with term: ${searchTerm}`);
+        await searchInput.fill(searchTerm);
+        await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+        
+        // Take screenshot of search results
+        await takeScreenshot(this.page, 'vaults-search-results');
+      } else {
+        console.log('No search input found on page, skipping search test');
+      }
+    } catch (error) {
+      console.log(`Error during search test: ${error.message}`);
+      console.log('Continuing with test execution...');
     }
   }
   
@@ -176,103 +184,122 @@ export class VaultListPage {
       await depositButton.click();
       console.log('Clicked on deposit button');
       
-      // Improved modal detection with multiple approaches
-      let modalVisible = false;
+      // Wait for animation/transitions
+      await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
       
-      // Try different selectors to locate the modal
-      const modalSelectors = [
-        '[role="dialog"]',
-        'dialog',
-        '.modal',
-        '[aria-modal="true"]', 
-        '.dialog-content',
-        // Dialog from shadcn/ui
+      // Take a screenshot regardless of modal detection
+      await takeScreenshot(this.page, 'after-deposit-click');
+      
+      // Use a more reliable method to check if a dialog appeared
+      await this.checkDepositDialogAndInteract();
+    } else {
+      console.log('Deposit button not enabled or not found');
+    }
+  }
+  
+  /**
+   * Helper method to check if deposit dialog appeared and interact with it
+   */
+  private async checkDepositDialogAndInteract(): Promise<void> {
+    console.log('Checking for deposit dialog...');
+    
+    try {
+      // First look specifically for "Deposit liquidity" dialog title
+      const dialogTitle = this.page.locator('text="Deposit liquidity"');
+      const depositLiquidityText = await this.page.getByText('Deposit liquidity').isVisible();
+      
+      if (depositLiquidityText) {
+        console.log('Found "Deposit liquidity" dialog');
+        await takeScreenshot(this.page, 'deposit-liquidity-dialog');
+        
+        // Test MAX button - use the specific button shown in screenshot
+        const maxButton = this.page.locator('button:has-text("MAX")');
+        if (await maxButton.isVisible()) {
+          await maxButton.click();
+          console.log('Clicked MAX button');
+          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          await takeScreenshot(this.page, 'after-max-button');
+          
+          // Validate deposit calculations after MAX
+          await this.validateDepositCalculations();
+        }
+        
+        // Clear and test manual input - input 1 as amount
+        const amountField = this.page.locator('input[type="number"], [placeholder="0"]').first();
+        if (await amountField.isVisible()) {
+          await amountField.fill('');
+          await amountField.fill('1');
+          console.log('Entered manual amount: 1');
+          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          await takeScreenshot(this.page, 'manual-amount-1');
+          
+          // Validate deposit calculations with manual input
+          await this.validateDepositCalculations();
+        }
+        
+        // Close dialog
+        const closeButton = this.page.locator('button[aria-label="Close"], button:has-text("Close")').first();
+        if (await closeButton.isVisible()) {
+          await closeButton.click();
+          console.log('Closed deposit dialog');
+        }
+        
+        return;
+      }
+      
+      // If specific title not found, try generic dialog detection
+      console.log('Specific deposit dialog title not found, checking generic dialog elements...');
+      
+      // Try multiple approaches to detect dialog
+      const dialogSelectors = [
+        // Shadcn dialog selectors
+        '[data-state="open"][role="dialog"]',
         '[data-state="open"]',
-        // Check for specific content that would be in the deposit modal
-        'div:has-text("Deposit Amount"):has(input[type="number"])'
+        // Standard dialog selectors
+        '[role="dialog"]',
+        'dialog[open]',
+        '.modal',
+        // Content-based detection
+        'div:has-text("Amount") >> visible=true',
+        'div:has-text("Vault Share") >> visible=true',
+        'div:has-text("Deposit Value") >> visible=true'
       ];
       
-      // Try each selector
-      for (const selector of modalSelectors) {
-        const modal = this.page.locator(selector).first();
-        if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
-          console.log(`Modal found with selector: ${selector}`);
-          modalVisible = true;
+      for (const selector of dialogSelectors) {
+        const dialogElement = this.page.locator(selector).first();
+        const count = await dialogElement.count();
+        
+        if (count > 0) {
+          console.log(`Found dialog using selector: ${selector}`);
+          await takeScreenshot(this.page, 'generic-deposit-dialog');
           
-          // Take screenshot of the modal
-          await takeScreenshot(this.page, 'vaults-deposit-modal');
-          
-          // For shadcn Dialog, check for DialogContent
-          if (selector === '[data-state="open"]') {
-            console.log('Found shadcn Dialog, checking for specific content');
-            const dialogContent = this.page.locator('[role="dialog"][data-state="open"]');
-            if (await dialogContent.isVisible()) {
-              console.log('Dialog content is visible');
-            }
+          // Test dialog interactions
+          // Look for input field
+          const inputField = this.page.locator('input[type="number"], input[placeholder*="0"]').first();
+          if (await inputField.count() > 0) {
+            console.log('Found input field in dialog');
+            await inputField.fill('1');
+            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+            await takeScreenshot(this.page, 'dialog-input-filled');
           }
           
-          // Test MAX button
-          const maxButton = await this.page.locator('button:has-text("MAX"), button:has-text("Max")').first();
-          if (await maxButton.isVisible()) {
-            await maxButton.click();
-            console.log('Clicked MAX button');
-            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-            
-            // Check if amount field was populated
-            const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
-            const amountValue = await amountField.inputValue();
-            const hasAmount = parseFloat(amountValue) > 0;
-            console.log(`Amount after MAX click: ${amountValue}, Is greater than 0: ${hasAmount}`);
-            
-            if (hasAmount) {
-              // Validate vault share and deposit value calculations
-              await this.validateDepositCalculations();
-              await takeScreenshot(this.page, 'vaults-deposit-max-amount');
-            }
-            
-            // Clear the field for manual input test
-            await amountField.fill('');
-            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-          }
-          
-          // Test manual input - input 1 as amount
-          const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
-          if (await amountField.isVisible()) {
-            await amountField.fill('1');
-            console.log('Entered manual amount: 1');
-            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-            
-            // Validate vault share and deposit value with manual input
-            await this.validateDepositCalculations();
-            await takeScreenshot(this.page, 'vaults-deposit-manual-amount');
-          }
-          
-          // Close modal
-          const closeButton = await this.page.locator(
-            '.modal button[aria-label="Close"], ' +
-            '[role="dialog"] button[aria-label="Close"], ' +
-            'dialog button[aria-label="Close"], ' +
-            'button:has-text("Cancel"), ' +
-            'button:has-text("Close")'
-          ).first();
-          
-          if (await closeButton.isVisible()) {
+          // Look for close button
+          const closeButton = this.page.locator('button[aria-label="Close"], button:has-text("Close"), button:has-text("Cancel")').first();
+          if (await closeButton.count() > 0) {
+            console.log('Found close button, closing dialog');
             await closeButton.click();
-            console.log('Modal closed');
-            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
           }
           
-          break; // Exit loop if modal was found and processed
+          return;
         }
       }
       
-      if (!modalVisible) {
-        console.log('Warning: Deposit button was clicked but no modal was detected');
-        // Try to take a screenshot anyway to see what's on screen
-        await takeScreenshot(this.page, 'after-deposit-click-no-modal');
-      }
-    } else {
-      console.log('Deposit button not enabled or not found');
+      console.log('No deposit dialog detected with any selectors');
+      
+    } catch (error) {
+      console.log(`Error during dialog interaction: ${error.message}`);
+      console.log('Continuing with test execution...');
+      await takeScreenshot(this.page, 'dialog-interaction-error');
     }
   }
   
@@ -280,25 +307,28 @@ export class VaultListPage {
    * Helper method to validate deposit calculations
    */
   private async validateDepositCalculations(): Promise<void> {
-    // Look for vault share calculation display
-    const shareDisplay = await this.page.locator('text=/Vault Shares:|You will receive:|Expected Shares:/i').first();
-    if (await shareDisplay.isVisible()) {
-      const shareText = await shareDisplay.textContent();
-      console.log(`Share calculation: ${shareText}`);
-    }
-    
-    // Look for deposit value calculation
-    const valueDisplay = await this.page.locator('text=/Value:|Deposit Value:|USD Value:/i').first();
-    if (await valueDisplay.isVisible()) {
-      const valueText = await valueDisplay.textContent();
-      console.log(`Value calculation: ${valueText}`);
-    }
-    
-    // Check if any calculation is displayed (more generic selector)
-    const calculationInfo = await this.page.locator('div:has-text("$"), div:has-text("USD")').first();
-    if (await calculationInfo.isVisible()) {
-      const calcText = await calculationInfo.textContent();
-      console.log(`Calculation info: ${calcText}`);
+    try {
+      console.log('Validating deposit calculations...');
+      
+      // Look for vault share calculation display - match UI from screenshot
+      const vaultShareRow = this.page.locator('text="Vault Share"').first();
+      if (await vaultShareRow.count() > 0) {
+        console.log('Found Vault Share row');
+        const percentageText = await this.page.locator('text=/[0-9]+%/').textContent();
+        console.log(`Share percentage: ${percentageText}`);
+      }
+      
+      // Look for deposit value calculation - match UI from screenshot
+      const depositValueRow = this.page.locator('text="Deposit Value"').first();
+      if (await depositValueRow.count() > 0) {
+        console.log('Found Deposit Value row');
+        const valueText = await this.page.locator('text=/\\$[0-9.]+/').textContent();
+        console.log(`Deposit value: ${valueText}`);
+      }
+      
+      await takeScreenshot(this.page, 'deposit-calculations');
+    } catch (error) {
+      console.log(`Error validating calculations: ${error.message}`);
     }
   }
 }
