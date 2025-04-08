@@ -24,11 +24,13 @@ npx playwright test --ui
 
 # Run specific test
 npx playwright test positions.spec.ts
+npx playwright test vaults.spec.ts
 ```
 
 ## Test Structure
 
 - `positions.spec.ts`: Tests for the positions page
+- `vaults.spec.ts`: Tests for the vaults page
 - `screenshots/`: Directory where test screenshots are saved
 
 ## Notes
@@ -37,3 +39,4 @@ npx playwright test positions.spec.ts
 - Test wallet address: `0x1822946a4f1a625044d93a468db6db756d4f89ff`
 - By default, tests run in headed mode (with browser visible)
 - Screenshots are taken at key points during test execution
+
