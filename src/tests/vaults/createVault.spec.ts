@@ -13,11 +13,12 @@ test.describe('Create Vault Form', () => {
     // Take screenshot of initial vaults page
     await takeScreenshot(page, 'vaults-page-initial');
     
-    // Setup wallet connection
+    // Setup wallet connection first before proceeding to Create Vault
     await setupWallet(page);
+    console.log('Wallet connected, proceeding to Create Vault test');
     
     // Locate and click the Create Vault button
-    const createVaultButton = page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")');
+    const createVaultButton = page.locator(SELECTORS.CREATE_VAULT.BUTTON[0]);
     await createVaultButton.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_APPEAR });
     await takeScreenshot(page, 'before-clicking-create-vault');
     await createVaultButton.click();
@@ -27,18 +28,18 @@ test.describe('Create Vault Form', () => {
     await takeScreenshot(page, 'create-vault-form');
     
     // 1. Test setting vault name
-    const nameInput = page.locator('input[placeholder="Set the name"], [aria-label="Set the name"]');
+    const nameInput = page.locator(SELECTORS.CREATE_VAULT.VAULT_NAME_INPUT[0]);
     await nameInput.waitFor({ state: 'visible' });
     await nameInput.fill('Test Vault Name');
     
     // 2. Test changing principal token
     // First check if it's set to USDC by default
-    const principalTokenSelect = page.locator('button:has-text("USDC"), [aria-label="Principal Token"]:has-text("USDC")');
+    const principalTokenSelect = page.locator(SELECTORS.CREATE_VAULT.PRINCIPAL_TOKEN_SELECT[0]);
     await principalTokenSelect.waitFor({ state: 'visible' });
     await principalTokenSelect.click();
     
     // Select WETH from dropdown
-    const wethOption = page.locator('text="WETH"');
+    const wethOption = page.locator(SELECTORS.CREATE_VAULT.TOKEN_OPTIONS.WETH);
     await wethOption.waitFor({ state: 'visible' });
     await takeScreenshot(page, 'principal-token-dropdown');
     await wethOption.click();
@@ -48,13 +49,13 @@ test.describe('Create Vault Form', () => {
     
     // Switch back to USDC
     await page.locator('button:has-text("WETH"), [aria-label="Principal Token"]:has-text("WETH")').click();
-    const usdcOption = page.locator('text="USDC"');
+    const usdcOption = page.locator(SELECTORS.CREATE_VAULT.TOKEN_OPTIONS.USDC);
     await usdcOption.waitFor({ state: 'visible' });
     await usdcOption.click();
     await expect(page.locator('button:has-text("USDC"), [aria-label="Principal Token"]:has-text("USDC")')).toBeVisible();
     
     // 3. Test toggling Publish Vault
-    const publishToggle = page.locator('[role="switch"]:near(:text("Publish Vault"))');
+    const publishToggle = page.locator(SELECTORS.CREATE_VAULT.PUBLISH_TOGGLE[0]);
     await publishToggle.waitFor({ state: 'visible' });
     const initialState = await publishToggle.getAttribute('data-state');
     await publishToggle.click();
@@ -69,8 +70,8 @@ test.describe('Create Vault Form', () => {
     
     // 4. Test Range Config options (Narrow vs Wide)
     // Test selecting Narrow
-    const narrowRangeButton = page.locator('button:has-text("Narrow")');
-    const wideRangeButton = page.locator('button:has-text("Wide")');
+    const narrowRangeButton = page.locator(SELECTORS.CREATE_VAULT.RANGE_CONFIG.NARROW);
+    const wideRangeButton = page.locator(SELECTORS.CREATE_VAULT.RANGE_CONFIG.WIDE);
     
     await narrowRangeButton.waitFor({ state: 'visible' });
     await narrowRangeButton.click();
@@ -90,10 +91,10 @@ test.describe('Create Vault Form', () => {
     
     // 5. Test Allowed Liquidity Pools options
     // Test each of the pool value options
-    const lowValueOption = page.locator('button:has-text("Low Value")');
-    const moderateValueOption = page.locator('button:has-text("Moderate Value")');
-    const highValueOption = page.locator('button:has-text("High Value")');
-    const fixedOption = page.locator('button:has-text("Fixed")');
+    const lowValueOption = page.locator(SELECTORS.CREATE_VAULT.LIQUIDITY_POOLS.LOW_VALUE);
+    const moderateValueOption = page.locator(SELECTORS.CREATE_VAULT.LIQUIDITY_POOLS.MODERATE_VALUE);
+    const highValueOption = page.locator(SELECTORS.CREATE_VAULT.LIQUIDITY_POOLS.HIGH_VALUE);
+    const fixedOption = page.locator(SELECTORS.CREATE_VAULT.LIQUIDITY_POOLS.FIXED);
     
     // Click and verify Low Value option
     await lowValueOption.waitFor({ state: 'visible' });
@@ -120,7 +121,7 @@ test.describe('Create Vault Form', () => {
     await expect(page.locator('text="Safety Evaluation:"')).toBeVisible();
     
     // Verify create vault button is enabled
-    const submitButton = page.locator('button:has-text("Create Vault")');
+    const submitButton = page.locator(SELECTORS.CREATE_VAULT.SUBMIT_BUTTON);
     await expect(submitButton).toBeEnabled();
     
     // Take a final screenshot of the completed form
