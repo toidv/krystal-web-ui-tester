@@ -22,6 +22,14 @@ export function initScreenshotsDir(): string {
 }
 
 /**
+ * Format date for screenshot filenames
+ */
+function formatDate(): string {
+  const now = new Date();
+  return `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+}
+
+/**
  * Take a screenshot with standardized naming
  */
 export async function takeScreenshot(
@@ -29,12 +37,13 @@ export async function takeScreenshot(
   name: string, 
   options?: { fullPage?: boolean }
 ): Promise<void> {
-  const screenshotPath = path.join(initScreenshotsDir(), `${name}.png`);
+  const timestamp = formatDate();
+  const screenshotPath = path.join(initScreenshotsDir(), `${name}-${timestamp}.png`);
   await page.screenshot({ 
     path: screenshotPath,
     fullPage: options?.fullPage ?? true 
   });
-  console.log(`Screenshot saved: ${name}.png`);
+  console.log(`Screenshot saved: ${name}-${timestamp}.png`);
 }
 
 /**
@@ -44,7 +53,8 @@ export async function takeWalletConnectionScreenshot(
   page: Page,
   step: string
 ): Promise<void> {
-  const name = `wallet-connection-${step}-${Date.now()}`;
+  const timestamp = formatDate();
+  const name = `wallet-connection-${step}-${timestamp}`;
   await takeScreenshot(page, name);
   console.log(`Wallet connection screenshot saved: ${name}.png`);
 }
@@ -57,7 +67,8 @@ export async function capturePageState(
   testName: string,
   state: string
 ): Promise<void> {
-  const name = `${testName}-${state}-${Date.now()}`;
+  const timestamp = formatDate();
+  const name = `${testName}-${state}-${timestamp}`;
   await takeScreenshot(page, name);
   console.log(`Page state captured: ${name}.png`);
 }

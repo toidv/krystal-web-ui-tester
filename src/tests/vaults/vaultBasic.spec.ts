@@ -8,8 +8,18 @@ test.describe('Krystal Vaults Basic Tests', () => {
   // Initialize screenshots directory before tests
   initScreenshotsDir();
 
+  // Make setupWalletConnection a prerequisite for all tests
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    try {
+      await setupWalletConnection(page);
+    } finally {
+      await page.close();
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
-    // Setup wallet connection before each test
+    // Ensure wallet is connected for this specific test instance
     await setupWalletConnection(page);
   });
 

@@ -1,5 +1,7 @@
 
 import { Page } from '@playwright/test';
+import { WALLET, TIMEOUTS } from './constants';
+import { takeWalletConnectionScreenshot } from './screenshotHelper';
 
 /**
  * Test wallet address to use throughout tests
@@ -7,31 +9,44 @@ import { Page } from '@playwright/test';
 export const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
 
 /**
+ * Global variable to track wallet connection state
+ */
+let isWalletConnected = false;
+
+/**
  * Setup Web3 wallet connection by clicking the connect button
- * and waiting for the connection to complete
+ * and waiting for the connection to complete - designed to be a prerequisite
  */
 export async function setupWalletConnection(page: Page): Promise<void> {
-  console.log('Setting up wallet connection via UI interaction...');
+  console.log('Setting up wallet connection as a prerequisite...');
+  
+  // Skip if already connected in this session
+  if (isWalletConnected) {
+    console.log('Wallet already connected in previous setup');
+    return;
+  }
   
   // First inject the mock ethereum provider
   await injectMockProvider(page);
+
+  // Navigate to base URL if needed
+  const currentUrl = page.url();
+  if (!currentUrl || currentUrl === 'about:blank') {
+    console.log('Navigating to base URL for wallet connection');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+  }
+  
+  // Take screenshot of initial state
+  await takeWalletConnectionScreenshot(page, 'before-connection');
   
   // Find and click the connect wallet button
   try {
-    // Look for connect wallet button with various selectors
-    const connectButtonSelectors = [
-      'button:has-text("Connect Wallet")', 
-      'button:has-text("Connect")',
-      '[data-testid="connect-wallet-button"]',
-      '.connect-wallet-button',
-      'button:has-text("Login")',
-      'button:has-text("Sign In")'
-    ];
-    
+    // Look for connect wallet button with selectors from constants
     console.log('Looking for connect wallet button...');
     
     // Try each selector until we find a match
-    for (const selector of connectButtonSelectors) {
+    for (const selector of WALLET.CONNECT_BUTTON_SELECTORS) {
       const connectButton = page.locator(selector).first();
       if (await connectButton.isVisible({ timeout: 3000 })) {
         console.log(`Found connect button with selector: ${selector}`);
@@ -44,15 +59,28 @@ export async function setupWalletConnection(page: Page): Promise<void> {
         // Wait for connected state
         await waitForWalletConnected(page);
         console.log('Wallet connection completed');
+        
+        // Mark as connected for future tests
+        isWalletConnected = true;
+        
+        // Take screenshot of connected state
+        await takeWalletConnectionScreenshot(page, 'after-connection');
         return;
       }
     }
     
-    console.log('No connect wallet button found, assuming already connected');
+    console.log('No connect wallet button found, checking if already connected');
     
     // If no button was found, the wallet might already be connected
     // Check if we can see the wallet address on the page
-    await verifyWalletConnected(page);
+    const isConnected = await verifyWalletConnected(page);
+    if (isConnected) {
+      console.log('Wallet already connected, continuing with tests');
+      isWalletConnected = true;
+      return;
+    }
+    
+    console.warn('Could not find connect button or verify connection, tests may fail');
   } catch (error) {
     console.error('Error connecting wallet:', error);
     throw new Error(`Failed to connect wallet: ${error}`);
@@ -192,29 +220,23 @@ async function waitForWalletConnected(page: Page): Promise<void> {
 
 /**
  * Verify wallet is connected by checking for address
+ * @returns true if wallet is connected, false otherwise
  */
-async function verifyWalletConnected(page: Page): Promise<void> {
+async function verifyWalletConnected(page: Page): Promise<boolean> {
   console.log('Verifying wallet connection...');
   
   // Get shortened address format
   const shortenedAddress = TEST_WALLET_ADDRESS.slice(0, 6) + '...' + TEST_WALLET_ADDRESS.slice(-4);
   
   // Look for address with various selectors
-  const addressSelectors = [
-    `text=${shortenedAddress}`,
-    `text=${TEST_WALLET_ADDRESS}`,
-    `[title*="${TEST_WALLET_ADDRESS}"]`,
-    '.wallet-address',
-    '[data-testid="wallet-address"]'
-  ];
-  
-  for (const selector of addressSelectors) {
+  for (const selector of WALLET.ADDRESS_SELECTORS) {
     const addressElement = page.locator(selector).first();
     if (await addressElement.isVisible({ timeout: 1000 })) {
       console.log(`Wallet connection verified with selector: ${selector}`);
-      return;
+      return true;
     }
   }
   
-  console.log('Could not verify wallet connection, continuing anyway');
+  console.log('Could not verify wallet connection');
+  return false;
 }
