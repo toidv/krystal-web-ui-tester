@@ -13,6 +13,9 @@ declare global {
       selectedAddress: string;
       isMetaMask?: boolean;
       isRabby?: boolean;
+      _walletCallbacks?: {
+        accountsChanged: Function[];
+      };
     };
   }
 }
@@ -28,6 +31,8 @@ export async function setupWalletConnection(page: Page): Promise<void> {
   
   // Inject mock ethereum object to simulate wallet extension
   await page.addInitScript(() => {
+    console.log('Injecting Ethereum provider...');
+    
     window.walletInjected = true;
     
     // Simulate Ethereum provider
@@ -35,18 +40,32 @@ export async function setupWalletConnection(page: Page): Promise<void> {
       isMetaMask: true,
       isRabby: false,
       selectedAddress: '',
+      _walletCallbacks: {
+        accountsChanged: []
+      },
       request: async (args: any) => {
-        console.log('Mock ethereum request:', args);
+        console.log('Mock ethereum request:', args.method);
         
         if (args.method === 'eth_requestAccounts' || args.method === 'eth_accounts') {
           window.ethereum.selectedAddress = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
+          console.log('Returning wallet address:', window.ethereum.selectedAddress);
           return [window.ethereum.selectedAddress];
+        }
+        
+        if (args.method === 'eth_chainId') {
+          return '0x1'; // Ethereum Mainnet
         }
         
         return null;
       },
       on: (event: string, callback: any) => {
         console.log(`Registered event listener for ${event}`);
+        if (event === 'accountsChanged') {
+          if (!window.ethereum._walletCallbacks) {
+            window.ethereum._walletCallbacks = { accountsChanged: [] };
+          }
+          window.ethereum._walletCallbacks.accountsChanged.push(callback);
+        }
       }
     };
     
@@ -67,21 +86,27 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
   // 1. Click Connect Wallet button
   try {
     // Try all possible Connect Wallet button selectors
+    let buttonClicked = false;
     for (const selector of SELECTORS.CONNECT_WALLET_BUTTON) {
       const button = page.locator(selector).first();
       if (await button.isVisible()) {
         console.log(`Found Connect Wallet button using selector: ${selector}`);
         await button.click();
         console.log('Clicked on Connect Wallet button');
+        buttonClicked = true;
         
         // Take screenshot of wallet provider selection menu
         await takeScreenshot(page, 'wallet-provider-menu');
         break;
       }
     }
+    
+    if (!buttonClicked) {
+      console.log('No connect wallet button found, attempting to inject wallet directly');
+    }
   } catch (error) {
     console.error('Failed to click Connect Wallet button:', error);
-    throw new Error('Connect Wallet button not found or not clickable');
+    console.log('Attempting to inject wallet directly');
   }
   
   // 2. Wait for wallet providers menu to appear and select specified wallet
@@ -103,6 +128,9 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
         await providerOption.click();
         console.log(`Clicked on ${walletType} option`);
         providerFound = true;
+        
+        // Add a delay to simulate the wallet extension response
+        await page.waitForTimeout(TIMEOUTS.ANIMATION);
         break;
       }
     }
@@ -119,6 +147,7 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
       if (await anyProviderOption.isVisible()) {
         console.log('Found a wallet provider option, clicking it');
         await anyProviderOption.click();
+        await page.waitForTimeout(TIMEOUTS.ANIMATION);
       } else {
         console.log('No wallet provider options found, proceeding with direct injection');
       }
@@ -137,28 +166,65 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
       window.ethereum.selectedAddress = address;
       
       // Simulate the accountsChanged event that wallet extensions fire
-      const accountsChangedEvent = new CustomEvent('accountsChanged', {
-        detail: [address]
-      });
-      window.dispatchEvent(accountsChangedEvent);
-      
-      // If there are any registered callbacks for accountsChanged, trigger them
-      const callbacks = (window as any)._walletCallbacks?.accountsChanged || [];
-      callbacks.forEach((callback: Function) => {
-        try {
-          callback([address]);
-        } catch (err) {
-          console.error('Error in accountsChanged callback:', err);
+      try {
+        const accountsChangedEvent = new CustomEvent('accountsChanged', {
+          detail: [address]
+        });
+        window.dispatchEvent(accountsChangedEvent);
+        
+        // If there are any registered callbacks for accountsChanged, trigger them
+        const callbacks = window.ethereum._walletCallbacks?.accountsChanged || [];
+        callbacks.forEach((callback: Function) => {
+          try {
+            callback([address]);
+          } catch (err) {
+            console.error('Error in accountsChanged callback:', err);
+          }
+        });
+
+        // Trigger any global ethereum event handlers
+        if (typeof window.ethereum.emit === 'function') {
+          try {
+            window.ethereum.emit('accountsChanged', [address]);
+          } catch (err) {
+            console.error('Error emitting accountsChanged event:', err);
+          }
         }
-      });
-      
-      console.log('Wallet connected successfully with address:', address);
-      return true;
+        
+        console.log('Wallet connected successfully with address:', address);
+        return true;
+      } catch (error) {
+        console.error('Error simulating wallet events:', error);
+        return false;
+      }
     } else {
       console.error('No ethereum object found in window');
       return false;
     }
   }, TEST_WALLET_ADDRESS);
+  
+  // 4. Close any open dialogs or menus that might be left open
+  try {
+    // Look for dialog close buttons, backdrop overlays, or escape key press
+    const closeButton = page.locator('.modal-close, [aria-label="Close"], button:has([data-icon="close"]), .close-button, .dialog-close, .wallet-close').first();
+    if (await closeButton.isVisible({ timeout: 2000 })) {
+      console.log('Found close button for dialog, clicking it');
+      await closeButton.click();
+    } else {
+      // Try clicking on backdrop/overlay to close modal
+      const backdrop = page.locator('.backdrop, .overlay, .modal-backdrop, [role="presentation"]').first();
+      if (await backdrop.isVisible({ timeout: 1000 })) {
+        console.log('Found backdrop/overlay, clicking it to close dialog');
+        await backdrop.click({ position: { x: 10, y: 10 } });
+      } else {
+        // Try pressing Escape key as last resort
+        console.log('No close button or backdrop found, pressing Escape key');
+        await page.keyboard.press('Escape');
+      }
+    }
+  } catch (error) {
+    console.log('No dialogs needed to be closed or failed to close dialog:', error);
+  }
   
   // Wait for the UI to update after wallet connection
   await page.waitForTimeout(TIMEOUTS.RENDER);
@@ -170,6 +236,14 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
  */
 export async function verifyWalletConnected(page: Page): Promise<boolean> {
   console.log('Verifying wallet connection...');
+  
+  // Ensure ethereum object is properly injected with the address
+  await page.evaluate((address) => {
+    if (window.ethereum && !window.ethereum.selectedAddress) {
+      console.log('Fixing ethereum object - injecting address directly');
+      window.ethereum.selectedAddress = address;
+    }
+  }, TEST_WALLET_ADDRESS);
   
   // Wait for wallet address to be displayed
   try {

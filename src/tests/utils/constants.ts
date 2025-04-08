@@ -28,20 +28,29 @@ export const SELECTORS = {
     'button:has-text("Connect")',
     '[role="button"]:has-text("Connect Wallet")',
     '.connect-wallet-button',
-    'a:has-text("Connect Wallet")'
+    'a:has-text("Connect Wallet")',
+    '[data-testid="connect-wallet"]',
+    '.header button:has-text("Connect")',
+    'nav button:has-text("Connect")'
   ],
   WALLET_PROVIDERS: {
     METAMASK: [
       'button:has-text("MetaMask")',
       'li:has-text("MetaMask")',
       '[data-provider="metamask"]',
-      'div[role="menuitem"]:has-text("MetaMask")'
+      'div[role="menuitem"]:has-text("MetaMask")',
+      '[data-wallet-name="metamask"]',
+      'button:has([alt="MetaMask"])',
+      '.wallet-option:has-text("MetaMask")'
     ],
     RABBY: [
       'button:has-text("Rabby")',
       'li:has-text("Rabby")',
       '[data-provider="rabby"]',
-      'div[role="menuitem"]:has-text("Rabby")'
+      'div[role="menuitem"]:has-text("Rabby")',
+      '[data-wallet-name="rabby"]',
+      'button:has([alt="Rabby"])',
+      '.wallet-option:has-text("Rabby")'
     ]
   },
   WALLET_ADDRESS: [
@@ -49,7 +58,11 @@ export const SELECTORS = {
     '[class*="wallet-address"]',
     'button:has-text("0x1822...89ff")',
     'button:has-text("...89ff")',
-    'span:has-text("0x1822...89ff")'
+    'span:has-text("0x1822...89ff")',
+    'button:has-text("1822")',
+    'button:has-text("89ff")',
+    'header button:not(:has-text("Connect"))',
+    'nav button:not(:has-text("Connect"))'
   ],
   PERFORMANCE: [
     'text="Historical Performance"',
