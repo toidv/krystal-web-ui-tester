@@ -15,29 +15,7 @@ export const TIMEOUTS = {
   PAGE_LOAD: 15000,
   ELEMENT_APPEAR: 10000,
   ANIMATION: 1000,
-  RENDER: 2000,
-  WALLET_CONNECTION: 12000
-};
-
-/**
- * Wallet related constants
- */
-export const WALLET = {
-  CONNECT_BUTTON_SELECTORS: [
-    'button:has-text("Connect Wallet")', 
-    'button:has-text("Connect")',
-    '[data-testid="connect-wallet-button"]',
-    '.connect-wallet-button',
-    'button:has-text("Login")',
-    'button:has-text("Sign In")'
-  ],
-  ADDRESS_SELECTORS: [
-    'text=/0x[a-fA-F0-9]{6}.../',
-    '.wallet-address',
-    '[data-testid="wallet-address"]',
-    '.account-display',
-    '[role="button"]:has-text("0x")'
-  ]
+  RENDER: 2000
 };
 
 /**

@@ -23,8 +23,6 @@ const config: PlaywrightTestConfig = {
       use: { browserName: 'chromium' },
     },
   ],
-  // Global setup for each test run - ensures wallet connection happens first
-  globalSetup: './src/tests/utils/globalSetup.ts',
 };
 
 export default config;
