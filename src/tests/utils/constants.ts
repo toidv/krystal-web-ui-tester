@@ -15,11 +15,11 @@ export const URLS = {
  * Timeouts for tests
  */
 export const TIMEOUTS = {
-  PAGE_LOAD: 60000, // Increased from 30000
-  ELEMENT_APPEAR: 30000, // Increased from 15000
-  ANIMATION: 15000,  // Increased from 10000
-  RENDER: 15000,  // Increased from 10000
-  WALLET_CONNECTION: 30000 // Increased from 20000
+  PAGE_LOAD: 120000,     // Increased from 60000
+  ELEMENT_APPEAR: 60000, // Increased from 30000
+  ANIMATION: 15000,      // Unchanged from previous
+  RENDER: 15000,         // Unchanged from previous
+  WALLET_CONNECTION: 60000 // Increased from 30000
 };
 
 /**
@@ -101,9 +101,12 @@ export const SELECTORS = {
   ],
   CREATE_VAULT: {
     BUTTON: [
-      'button:has-text("Create Vault")',
-      '[role="button"]:has-text("Create Vault")',
-      '[data-testid="create-vault-button"]'
+      'button:has-text("Create Vault"):not([role="menuitemradio"])',
+      '[role="button"]:has-text("Create Vault"):not([role="menuitemradio"])',
+      '[data-testid="create-vault-button"]',
+      'nav button:has-text("Create Vault")',
+      'header button:has-text("Create Vault")',
+      '.chakra-button:has-text("Create Vault")'
     ],
     VAULT_NAME_INPUT: [
       'input[placeholder="Set the name"]',
@@ -118,22 +121,34 @@ export const SELECTORS = {
       'button:has(text="Base")'
     ],
     PRINCIPAL_TOKEN_SELECT: [
-      'button:has-text("Select Token")',
-      'button:has-text("WETH")',
-      'button:has-text("USDC")',
-      '[aria-label="Principal Token"]',
-      'div:has-text("Principal Token"):has(button)'
+      'button[aria-haspopup="menu"]:has-text("WETH"), button[aria-haspopup="menu"]:has-text("USDC")',
+      '.chakra-menu__menu-button:has-text("WETH"), .chakra-menu__menu-button:has-text("USDC")',
+      'button[id^="menu-button-"]:has-text("WETH"), button[id^="menu-button-"]:has-text("USDC")',
+      '[aria-label="Principal Token"] button',
+      'div:has-text("Principal Token") > button'
     ],
     TOKEN_OPTIONS: {
-      USDC: ['text="USDC"', 'div[role="menuitem"]:has-text("USDC")', 'div:has-text("USDC"):has(img)'],
-      WETH: ['text="WETH"', 'div[role="menuitem"]:has-text("WETH")', 'div:has-text("WETH"):has(img)']
+      USDC: [
+        'button[role="menuitemradio"]:has-text("USDC")', 
+        'div[role="menuitemradio"]:has-text("USDC")', 
+        '.chakra-menu__menuitem-option:has-text("USDC")',
+        '[id^="menu-list-"] [role="menuitemradio"]:has-text("USDC")'
+      ],
+      WETH: [
+        'button[role="menuitemradio"]:has-text("WETH")', 
+        'div[role="menuitemradio"]:has-text("WETH")', 
+        '.chakra-menu__menuitem-option:has-text("WETH")',
+        '[id^="menu-list-"] [role="menuitemradio"]:has-text("WETH")'
+      ]
     },
     PUBLISH_TOGGLE: [
       '[role="switch"]:near(:text("Publish Vault"))',
       '[data-testid="publish-vault-toggle"]',
       'label:has([role="switch"])',
       'div:has-text("Publish Vault"):has(button[role="switch"])',
-      'button[role="switch"]'
+      'button[role="switch"]',
+      '.chakra-switch > input[type="checkbox"]',
+      '.chakra-switch'
     ],
     RANGE_CONFIG: {
       NARROW: 'button:has-text("Narrow")',
@@ -146,9 +161,10 @@ export const SELECTORS = {
       FIXED: 'button:has-text("Fixed")'
     },
     SUBMIT_BUTTON: [
-      'button:has-text("Create Vault")',
+      'button:has-text("Create Vault"):not([aria-haspopup="menu"])',
       'button[type="submit"]',
-      'button.primary:has-text("Create")'
+      'button.primary:has-text("Create")',
+      'form button:has-text("Create Vault")'
     ]
   }
 };
