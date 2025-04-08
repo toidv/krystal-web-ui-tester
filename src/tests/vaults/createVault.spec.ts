@@ -1,0 +1,129 @@
+
+import { test, expect } from '@playwright/test';
+import { takeScreenshot } from '../utils/screenshotHelper';
+import { URLS, TIMEOUTS, SELECTORS } from '../utils/constants';
+import { setupWallet } from '../utils/setupWallet';
+
+test.describe('Create Vault Form', () => {
+  test('should correctly validate and display create vault form options', async ({ page }) => {
+    // Navigate to vaults page
+    await page.goto(URLS.VAULTS, { timeout: TIMEOUTS.PAGE_LOAD });
+    await page.waitForLoadState('networkidle');
+    
+    // Take screenshot of initial vaults page
+    await takeScreenshot(page, 'vaults-page-initial');
+    
+    // Setup wallet connection
+    await setupWallet(page);
+    
+    // Locate and click the Create Vault button
+    const createVaultButton = page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")');
+    await createVaultButton.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_APPEAR });
+    await takeScreenshot(page, 'before-clicking-create-vault');
+    await createVaultButton.click();
+    
+    // Wait for the create vault form to appear
+    await page.waitForSelector('text="Set Name"', { timeout: TIMEOUTS.ELEMENT_APPEAR });
+    await takeScreenshot(page, 'create-vault-form');
+    
+    // 1. Test setting vault name
+    const nameInput = page.locator('input[placeholder="Set the name"], [aria-label="Set the name"]');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill('Test Vault Name');
+    
+    // 2. Test changing principal token
+    // First check if it's set to USDC by default
+    const principalTokenSelect = page.locator('button:has-text("USDC"), [aria-label="Principal Token"]:has-text("USDC")');
+    await principalTokenSelect.waitFor({ state: 'visible' });
+    await principalTokenSelect.click();
+    
+    // Select WETH from dropdown
+    const wethOption = page.locator('text="WETH"');
+    await wethOption.waitFor({ state: 'visible' });
+    await takeScreenshot(page, 'principal-token-dropdown');
+    await wethOption.click();
+    
+    // Verify WETH is now selected
+    await expect(page.locator('button:has-text("WETH"), [aria-label="Principal Token"]:has-text("WETH")')).toBeVisible();
+    
+    // Switch back to USDC
+    await page.locator('button:has-text("WETH"), [aria-label="Principal Token"]:has-text("WETH")').click();
+    const usdcOption = page.locator('text="USDC"');
+    await usdcOption.waitFor({ state: 'visible' });
+    await usdcOption.click();
+    await expect(page.locator('button:has-text("USDC"), [aria-label="Principal Token"]:has-text("USDC")')).toBeVisible();
+    
+    // 3. Test toggling Publish Vault
+    const publishToggle = page.locator('[role="switch"]:near(:text("Publish Vault"))');
+    await publishToggle.waitFor({ state: 'visible' });
+    const initialState = await publishToggle.getAttribute('data-state');
+    await publishToggle.click();
+    
+    // Verify toggle has changed state
+    await expect(publishToggle).not.toHaveAttribute('data-state', initialState);
+    await takeScreenshot(page, 'publish-vault-toggled');
+    
+    // Toggle back to original state
+    await publishToggle.click();
+    await expect(publishToggle).toHaveAttribute('data-state', initialState);
+    
+    // 4. Test Range Config options (Narrow vs Wide)
+    // Test selecting Narrow
+    const narrowRangeButton = page.locator('button:has-text("Narrow")');
+    const wideRangeButton = page.locator('button:has-text("Wide")');
+    
+    await narrowRangeButton.waitFor({ state: 'visible' });
+    await narrowRangeButton.click();
+    await takeScreenshot(page, 'narrow-range-selected');
+    
+    // Verify narrow range config is displayed
+    await expect(page.locator('text=10.52%')).toBeVisible();
+    await expect(page.locator('text=0.02%')).toBeVisible();
+    
+    // Test selecting Wide
+    await wideRangeButton.click();
+    await takeScreenshot(page, 'wide-range-selected');
+    
+    // Verify wide range config is displayed (this will depend on the actual UI, using placeholders)
+    // The actual percentages may vary, so we'll check for the existence of the range explanation
+    await expect(page.locator('text="Range width is calculated based on the lower and upper prices"')).toBeVisible();
+    
+    // 5. Test Allowed Liquidity Pools options
+    // Test each of the pool value options
+    const lowValueOption = page.locator('button:has-text("Low Value")');
+    const moderateValueOption = page.locator('button:has-text("Moderate Value")');
+    const highValueOption = page.locator('button:has-text("High Value")');
+    const fixedOption = page.locator('button:has-text("Fixed")');
+    
+    // Click and verify Low Value option
+    await lowValueOption.waitFor({ state: 'visible' });
+    await lowValueOption.click();
+    await takeScreenshot(page, 'low-value-option');
+    await expect(page.locator('text="≤5 USDC"')).toBeVisible();
+    
+    // Click and verify Moderate Value option
+    await moderateValueOption.click();
+    await takeScreenshot(page, 'moderate-value-option');
+    await expect(page.locator('text="≤50 USDC"')).toBeVisible();
+    
+    // Click and verify High Value option
+    await highValueOption.click();
+    await takeScreenshot(page, 'high-value-option');
+    await expect(page.locator('text="≤500 USDC"')).toBeVisible();
+    
+    // Click and verify Fixed option
+    await fixedOption.click();
+    await takeScreenshot(page, 'fixed-option');
+    await expect(page.locator('text="A specific list of pools"')).toBeVisible();
+    
+    // Verify safety evaluation section exists
+    await expect(page.locator('text="Safety Evaluation:"')).toBeVisible();
+    
+    // Verify create vault button is enabled
+    const submitButton = page.locator('button:has-text("Create Vault")');
+    await expect(submitButton).toBeEnabled();
+    
+    // Take a final screenshot of the completed form
+    await takeScreenshot(page, 'create-vault-form-completed');
+  });
+});

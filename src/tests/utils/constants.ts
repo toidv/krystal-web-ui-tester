@@ -1,4 +1,3 @@
-
 /**
  * Base URLs for tests
  */
@@ -98,5 +97,45 @@ export const SELECTORS = {
     'div.column-header:has-text("APR")',
     'button:has-text("APR")',
     'text=APR'
-  ]
+  ],
+  CREATE_VAULT: {
+    BUTTON: [
+      'button:has-text("Create Vault")',
+      'a:has-text("Create Vault")',
+      '[data-testid="create-vault-button"]'
+    ],
+    VAULT_NAME_INPUT: [
+      'input[placeholder="Set the name"]',
+      '[aria-label="Set the name"]',
+      'input[name="vaultName"]'
+    ],
+    NETWORK_SELECT: [
+      'button:has-text("Base Mainnet")',
+      '[aria-label="Select network"]'
+    ],
+    PRINCIPAL_TOKEN_SELECT: [
+      'button:has-text("USDC")',
+      'button:has-text("WETH")',
+      '[aria-label="Principal Token"]'
+    ],
+    TOKEN_OPTIONS: {
+      USDC: 'text="USDC"',
+      WETH: 'text="WETH"'
+    },
+    PUBLISH_TOGGLE: [
+      '[role="switch"]:near(:text("Publish Vault"))',
+      '[data-testid="publish-vault-toggle"]'
+    ],
+    RANGE_CONFIG: {
+      NARROW: 'button:has-text("Narrow")',
+      WIDE: 'button:has-text("Wide")'
+    },
+    LIQUIDITY_POOLS: {
+      LOW_VALUE: 'button:has-text("Low Value")',
+      MODERATE_VALUE: 'button:has-text("Moderate Value")',
+      HIGH_VALUE: 'button:has-text("High Value")',
+      FIXED: 'button:has-text("Fixed")'
+    },
+    SUBMIT_BUTTON: 'button:has-text("Create Vault")'
+  }
 };
