@@ -36,3 +36,28 @@ export async function takeScreenshot(
   });
   console.log(`Screenshot saved: ${name}.png`);
 }
+
+/**
+ * Take a screenshot during wallet connection process
+ */
+export async function takeWalletConnectionScreenshot(
+  page: Page,
+  step: string
+): Promise<void> {
+  const name = `wallet-connection-${step}-${Date.now()}`;
+  await takeScreenshot(page, name);
+  console.log(`Wallet connection screenshot saved: ${name}.png`);
+}
+
+/**
+ * Capture page state screenshots during test execution
+ */
+export async function capturePageState(
+  page: Page,
+  testName: string,
+  state: string
+): Promise<void> {
+  const name = `${testName}-${state}-${Date.now()}`;
+  await takeScreenshot(page, name);
+  console.log(`Page state captured: ${name}.png`);
+}
