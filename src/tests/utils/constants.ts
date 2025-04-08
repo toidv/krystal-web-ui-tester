@@ -15,7 +15,8 @@ export const TIMEOUTS = {
   PAGE_LOAD: 15000,
   ELEMENT_APPEAR: 10000,
   ANIMATION: 1000,
-  RENDER: 2000
+  RENDER: 2000,
+  WALLET_CONNECTION: 5000
 };
 
 /**
@@ -28,6 +29,13 @@ export const SELECTORS = {
     '[role="button"]:has-text("Connect Wallet")',
     '.connect-wallet-button',
     'a:has-text("Connect Wallet")'
+  ],
+  WALLET_ADDRESS: [
+    '[data-testid="wallet-address"]',
+    '[class*="wallet-address"]',
+    'button:has-text("0x1822...89ff")',
+    'button:has-text("...89ff")',
+    'span:has-text("0x1822...89ff")'
   ],
   PERFORMANCE: [
     'text="Historical Performance"',

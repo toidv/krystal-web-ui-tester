@@ -1,6 +1,7 @@
 
 import { Page, expect } from '@playwright/test';
-import { SELECTORS } from './constants';
+import { SELECTORS, TIMEOUTS } from './constants';
+import { takeScreenshot } from './screenshotHelper';
 
 /**
  * Test wallet address to use throughout tests
@@ -48,6 +49,9 @@ export async function setupWalletConnection(page: Page): Promise<void> {
     
     // Add a flag to indicate wallet is injected
     window.walletInjected = true;
+    
+    // Log for verification
+    console.log('Mock wallet provider injected with address:', mockProvider.selectedAddress);
   });
 
   // Load Web3 from CDN
@@ -71,15 +75,36 @@ export async function connectWallet(page: Page): Promise<void> {
   console.log('Connecting wallet...');
   
   try {
-    // Look for connect wallet button using various selectors
-    const connectWalletButton = await page.locator(SELECTORS.CONNECT_WALLET_BUTTON[0]).first();
+    // Take screenshot before connecting wallet
+    await takeScreenshot(page, 'before-wallet-connection');
     
-    // Verify connect button is visible
-    const isConnectVisible = await connectWalletButton.isVisible();
-    if (!isConnectVisible) {
-      console.log('Connect wallet button not visible, may already be connected');
-      await verifyWalletConnected(page);
-      return;
+    // Look for connect wallet button using various selectors
+    let connectWalletButton = null;
+    
+    // Try each selector in the array until one works
+    for (const selector of SELECTORS.CONNECT_WALLET_BUTTON) {
+      try {
+        const button = page.locator(selector).first();
+        if (await button.isVisible({ timeout: 1000 })) {
+          connectWalletButton = button;
+          console.log(`Found Connect Wallet button with selector: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+    
+    // If no connect button found, check if already connected
+    if (!connectWalletButton) {
+      console.log('Connect wallet button not visible, checking if already connected...');
+      const isConnected = await isWalletConnected(page);
+      if (isConnected) {
+        console.log('Wallet already connected');
+        return;
+      } else {
+        throw new Error('Connect wallet button not found and wallet not connected');
+      }
     }
     
     // Click the connect wallet button
@@ -97,12 +122,44 @@ export async function connectWallet(page: Page): Promise<void> {
       console.log('No wallet selection dialog appeared or MetaMask option not found');
     }
     
+    // Take screenshot after clicking connect
+    await takeScreenshot(page, 'after-clicking-connect');
+    
     // Verify wallet is connected
     await verifyWalletConnected(page);
     
   } catch (error) {
     console.error('Error connecting wallet:', error);
     throw new Error(`Failed to connect wallet: ${error}`);
+  }
+}
+
+/**
+ * Check if wallet is already connected
+ */
+export async function isWalletConnected(page: Page): Promise<boolean> {
+  try {
+    // Create shortened address format for verification
+    const shortenedAddress = `${TEST_WALLET_ADDRESS.slice(0, 6)}...${TEST_WALLET_ADDRESS.slice(-4)}`;
+    
+    // Try each selector in the array until one works
+    for (const selector of SELECTORS.WALLET_ADDRESS) {
+      try {
+        const element = page.locator(selector).first();
+        if (await element.isVisible({ timeout: 1000 })) {
+          console.log(`Wallet address found with selector: ${selector}`);
+          return true;
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+    
+    // Also check for the shortened address text anywhere on the page
+    const addressText = page.locator(`text=${shortenedAddress}`).first();
+    return await addressText.isVisible({ timeout: 1000 });
+  } catch (error) {
+    return false;
   }
 }
 
@@ -118,10 +175,36 @@ export async function verifyWalletConnected(page: Page): Promise<void> {
     console.log(`Looking for shortened address: ${shortenedAddress}`);
     
     // Wait for the address to appear in the UI
-    const addressElement = await page.locator(`text=${shortenedAddress}, button:has-text("${shortenedAddress}")`).first();
+    let addressElement = null;
+    
+    // Try each wallet address selector in the array
+    for (const selector of SELECTORS.WALLET_ADDRESS) {
+      try {
+        const element = page.locator(selector).first();
+        if (await element.isVisible({ timeout: 2000 })) {
+          addressElement = element;
+          console.log(`Found wallet address with selector: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        // Continue to next selector
+      }
+    }
+    
+    // If not found with specific selectors, look for the text anywhere
+    if (!addressElement) {
+      console.log('Looking for address text anywhere on the page...');
+      addressElement = page.locator(`text=${shortenedAddress}`).first();
+    }
+    
+    // Wait a bit for UI to update if needed
+    await page.waitForTimeout(TIMEOUTS.ANIMATION);
+    
+    // Take screenshot after connection
+    await takeScreenshot(page, 'wallet-connected-verification');
     
     // Verify the address is visible
-    await expect(addressElement).toBeVisible({ timeout: 10000 });
+    await expect(addressElement).toBeVisible({ timeout: TIMEOUTS.WALLET_CONNECTION });
     console.log('Wallet connected successfully! Address verified in UI.');
   } catch (error) {
     console.error('Error verifying wallet connection:', error);
