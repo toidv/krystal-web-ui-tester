@@ -3,9 +3,12 @@
  * Base URLs for tests
  */
 export const URLS = {
-  BASE: 'http://localhost:3000',
-  VAULTS: 'http://localhost:3000/vaults',
-  POSITIONS: 'http://localhost:3000/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions'
+  // BASE: 'http://localhost:3000',
+  // VAULTS: 'http://localhost:3000/vaults',
+  // POSITIONS: 'http://localhost:3000/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions'
+  BASE: 'https://dev-krystal-web-pr-3207.krystal.team',
+  VAULTS: 'https://dev-krystal-web-pr-3207.krystal.team/vaults',
+  POSITIONS: 'https://dev-krystal-web-pr-3207.krystal.team/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions'
 };
 
 /**
@@ -14,9 +17,9 @@ export const URLS = {
 export const TIMEOUTS = {
   PAGE_LOAD: 15000,
   ELEMENT_APPEAR: 10000,
-  ANIMATION: 1000,
-  RENDER: 2000,
-  WALLET_CONNECTION: 5000
+  ANIMATION: 10000,
+  RENDER: 10000,
+  WALLET_CONNECTION: 10000
 };
 
 /**
