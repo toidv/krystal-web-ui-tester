@@ -39,7 +39,7 @@ Screenshots are automatically saved to the `screenshots/` directory at the proje
 The tests simulate a wallet connection using Web3.js with the following configuration:
 
 - Test wallet address: `0x1822946a4f1a625044d93a468db6db756d4f89ff`
-- Base URL: `http://192.168.6.16:3000/`
+- Base URL: `http://localhost:3000/`
 - Tests run in headed mode by default (with browser visible)
 
 ## Test Structure

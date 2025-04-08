@@ -1,4 +1,3 @@
-
 import { test, expect, Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // Test wallet address to use
 const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
-const POSITIONS_URL = 'http://192.168.6.16:3000/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions';
+const POSITIONS_URL = 'http://localhost:3000/account/0x1822946a4f1a625044d93a468db6db756d4f89ff/positions';
 
 /**
  * Setup Web3 wallet connection and inject it into the browser context
