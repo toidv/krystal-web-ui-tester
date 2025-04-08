@@ -26,6 +26,31 @@ declare global {
 export const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
 
 /**
+ * Sets up wallet for testing - combines setup, connect and verify steps
+ */
+export async function setupWallet(page: Page): Promise<void> {
+  console.log('Setting up wallet for testing...');
+  
+  // 1. Inject wallet connection simulation
+  await setupWalletConnection(page);
+  
+  // 2. Connect the wallet
+  await connectWallet(page);
+  
+  // 3. Verify wallet connection
+  const isConnected = await verifyWalletConnected(page);
+  
+  if (!isConnected) {
+    console.warn('Wallet verification failed, retrying connection...');
+    // Retry connection once
+    await connectWallet(page);
+    await verifyWalletConnected(page);
+  }
+  
+  console.log('Wallet setup complete');
+}
+
+/**
  * Sets up wallet connection simulation for testing
  */
 export async function setupWalletConnection(page: Page): Promise<void> {
