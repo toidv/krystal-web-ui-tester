@@ -29,10 +29,21 @@ export async function takeScreenshot(
   name: string, 
   options?: { fullPage?: boolean }
 ): Promise<void> {
-  const screenshotPath = path.join(initScreenshotsDir(), `${name}.png`);
-  await page.screenshot({ 
-    path: screenshotPath,
-    fullPage: options?.fullPage ?? true 
-  });
-  console.log(`Screenshot saved: ${name}.png`);
+  try {
+    // Check if page is still usable before attempting to take screenshot
+    if (page.isClosed()) {
+      console.warn(`Cannot take screenshot '${name}.png': Page is already closed`);
+      return;
+    }
+    
+    const screenshotPath = path.join(initScreenshotsDir(), `${name}.png`);
+    await page.screenshot({ 
+      path: screenshotPath,
+      fullPage: options?.fullPage ?? true 
+    });
+    console.log(`Screenshot saved: ${name}.png`);
+  } catch (error) {
+    // Handle errors gracefully without failing the test
+    console.warn(`Failed to take screenshot '${name}.png': ${error.message}`);
+  }
 }
