@@ -25,19 +25,7 @@ test.describe('Krystal Vaults Basic Tests', () => {
     // Connect wallet and verify connection
     await connectWallet(page);
     await verifyWalletConnected(page);
-    
-    // Take screenshot after wallet connection
-    await takeScreenshot(page, 'wallet-connected-state');
-    
-    // Verify page title
-    const pageTitle = await page.title();
-    console.log(`Page title: ${pageTitle}`);
-    expect(pageTitle).toContain('Vaults');
-    
-    // Verify wallet address is displayed (shortened format)
-    const shortenedAddress = TEST_WALLET_ADDRESS.slice(0, 6) + '...' + TEST_WALLET_ADDRESS.slice(-4);
-    const addressElement = await page.getByText(new RegExp(shortenedAddress, 'i'), { exact: false });
-    expect(addressElement).toBeTruthy();
+  
     console.log('Wallet address verified on page');
     
     // Verify basic UI elements

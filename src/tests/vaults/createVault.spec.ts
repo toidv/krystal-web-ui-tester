@@ -1,49 +1,36 @@
 
 import { test, expect } from '@playwright/test';
-import { takeScreenshot } from '../utils/screenshotHelper';
+import { takeScreenshot, initScreenshotsDir } from '../utils/screenshotHelper';
 import { URLS, TIMEOUTS, SELECTORS } from '../utils/constants';
 import { setupWalletConnection, connectWallet, verifyWalletConnected } from '../utils/setupWallet';
+import { VaultListPage } from '../page-objects/VaultListPage';
 
 test.describe('Create Vault Form', () => {
+  initScreenshotsDir();
+
+    test.beforeEach(async ({ page }) => {
+      // Setup wallet connection before each test
+      await setupWalletConnection(page);
+    });
+
   test('should correctly validate and display create vault form options', async ({ page }) => {
     console.log('Starting Create Vault test...');
-    
-    // Navigate to vaults page
-    await page.goto(URLS.VAULTS, { timeout: TIMEOUTS.PAGE_LOAD });
-    await page.waitForLoadState('networkidle');
-    
-    // Take screenshot of initial vaults page
-    await takeScreenshot(page, 'vaults-page-initial');
-    
-    // Check if we're on a 404 page before proceeding
-    const is404Page = await page.locator('text=404 Not Found').isVisible();
-    if (is404Page) {
-      console.log('404 page detected. URL may be incorrect or page not available.');
-      await takeScreenshot(page, '404-error-page');
-      // Update URL if needed - the current URL might be incorrect
-      console.log('Trying alternative URL...');
-      await page.goto('https://dev-krystal-web-pr-3207.krystal.team/apps', { timeout: TIMEOUTS.PAGE_LOAD });
-      await page.waitForLoadState('networkidle');
-    }
-    
-    // Setup wallet connection using the pattern from vaultBasic.spec.ts
-    await setupWalletConnection(page);
+    const vaultListPage = new VaultListPage(page);
+    // Visit the vaults page
+    await vaultListPage.goto();
+    await vaultListPage.waitForPageLoad();
+
+    // Connect wallet and verify connection
     await connectWallet(page);
     await verifyWalletConnected(page);
-    
-    // Take screenshot after wallet connection
-    await takeScreenshot(page, 'wallet-connected-state');
+  
     console.log('Wallet connected, proceeding to Create Vault test');
+
+    // Verify basic UI elements
+    await vaultListPage.verifyBasicUIElements();
     
-    // Check if we need to navigate to the vaults page again after connecting wallet
-    const currentUrl = page.url();
-    console.log(`Current URL after wallet connection: ${currentUrl}`);
-    if (!currentUrl.includes('/vaults')) {
-      console.log('Not on vaults page. Navigating to vaults page...');
-      await page.goto(URLS.VAULTS, { timeout: TIMEOUTS.PAGE_LOAD });
-      await page.waitForLoadState('networkidle');
-      await takeScreenshot(page, 'vaults-page-after-navigation');
-    }
+    // Verify vault table exists
+    await vaultListPage.verifyVaultTable();
     
     // Check if Create Vault button exists on the page
     const buttonExists = await page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")').count() > 0;
