@@ -1,5 +1,11 @@
 
 import { test, expect, Page } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get directory name for current module (ESM equivalent of __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Test wallet address to use
 const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
@@ -34,9 +40,15 @@ async function setupWalletConnection(page: Page): Promise<void> {
     });
   });
 
-  // Inject Web3 library into the page
+  // Instead of using require.resolve, we'll use a direct URL to a CDN for web3
   await page.addInitScript({
-    path: require.resolve('web3/dist/web3.min.js'),
+    content: `
+      // Load Web3 from CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/web3@4.16.0/dist/web3.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    `
   });
 
   console.log('Web3 wallet connection setup completed');
@@ -113,7 +125,7 @@ test.describe('Krystal Vaults Page Tests', () => {
     // First verify whitelist and wallet connection if needed
     const whitelistVerified = await verifyWalletWhitelist(page);
     if (!whitelistVerified) {
-      test.skip('Test skipped due to failed wallet connection or whitelist verification');
+      test.skip(); // Use proper test.skip() syntax here
       return;
     }
     
