@@ -314,16 +314,88 @@ export class VaultListPage {
       const vaultShareRow = this.page.locator('text="Vault Share"').first();
       if (await vaultShareRow.count() > 0) {
         console.log('Found Vault Share row');
-        const percentageText = await this.page.locator('text=/[0-9]+%/').textContent();
-        console.log(`Share percentage: ${percentageText}`);
+        
+        // Use more specific selector to avoid matching too many elements
+        // First, try to find the percentage within the same row as "Vault Share"
+        const shareSection = this.page.locator('div:has-text("Vault Share")').first();
+        if (await shareSection.count() > 0) {
+          // Try to get percentage within this section using various selectors
+          for (const selector of [
+            'div[class*="percentage"], span[class*="percentage"]',
+            'div:right-of(:text("Vault Share"))',
+            'span:right-of(:text("Vault Share"))'
+          ]) {
+            const percentElement = shareSection.locator(selector).first();
+            if (await percentElement.count() > 0) {
+              const percentText = await percentElement.textContent();
+              console.log(`Share percentage: ${percentText}`);
+              break;
+            }
+          }
+        } else {
+          console.log('Could not find specific Vault Share section, using fallback');
+          // Take screenshot to debug the UI structure
+          await takeScreenshot(this.page, 'vault-share-section-debug');
+        }
       }
       
       // Look for deposit value calculation - match UI from screenshot
       const depositValueRow = this.page.locator('text="Deposit Value"').first();
       if (await depositValueRow.count() > 0) {
         console.log('Found Deposit Value row');
-        const valueText = await this.page.locator('text=/\\$[0-9.]+/').textContent();
-        console.log(`Deposit value: ${valueText}`);
+        
+        // Use more specific selector to avoid matching too many elements
+        const valueSection = this.page.locator('div:has-text("Deposit Value")').first();
+        if (await valueSection.count() > 0) {
+          // Try to get value within this section using various selectors
+          for (const selector of [
+            'div[class*="value"], span[class*="value"]',
+            'div:right-of(:text("Deposit Value"))',
+            'span:right-of(:text("Deposit Value"))'
+          ]) {
+            const valueElement = valueSection.locator(selector).first();
+            if (await valueElement.count() > 0) {
+              const valueText = await valueElement.textContent();
+              console.log(`Deposit value: ${valueText}`);
+              break;
+            }
+          }
+        } else {
+          console.log('Could not find specific Deposit Value section, using screenshots for debugging');
+          // Take screenshot for debugging
+          await takeScreenshot(this.page, 'deposit-value-section-debug');
+        }
+      }
+      
+      // Alternative approach using adjacent siblings or nearby elements
+      try {
+        console.log('Trying alternative approach to locate calculation values...');
+        
+        // Try to capture any visible percentage in the dialog
+        const percentageElements = this.page.locator('[role="dialog"] div:has-text("%")').all();
+        const elements = await percentageElements;
+        if (elements.length > 0) {
+          for (let i = 0; i < Math.min(elements.length, 3); i++) {
+            const text = await elements[i].textContent();
+            if (text && text.includes('%')) {
+              console.log(`Found percentage text: ${text}`);
+            }
+          }
+        }
+        
+        // Try to capture any visible dollar amount in the dialog
+        const dollarElements = this.page.locator('[role="dialog"] div:has-text("$")').all();
+        const dollarItems = await dollarElements;
+        if (dollarItems.length > 0) {
+          for (let i = 0; i < Math.min(dollarItems.length, 3); i++) {
+            const text = await dollarItems[i].textContent();
+            if (text && text.includes('$')) {
+              console.log(`Found dollar value: ${text}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`Error in alternative calculation approach: ${error.message}`);
       }
       
       await takeScreenshot(this.page, 'deposit-calculations');
