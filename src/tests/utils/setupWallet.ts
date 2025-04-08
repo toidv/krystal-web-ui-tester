@@ -10,6 +10,7 @@ declare global {
     ethereum: {
       request: (args: any) => Promise<any>;
       on: (event: string, callback: any) => void;
+      removeListener: (event: string, callback: any) => void;
       emit?: (event: string, args: any) => void;
       selectedAddress: string;
       isMetaMask?: boolean;
@@ -66,6 +67,29 @@ export async function setupWalletConnection(page: Page): Promise<void> {
             window.ethereum._walletCallbacks = { accountsChanged: [] };
           }
           window.ethereum._walletCallbacks.accountsChanged.push(callback);
+        }
+      },
+      // Add the removeListener method to handle cleanup calls
+      removeListener: (event: string, callback: any) => {
+        console.log(`Removing event listener for ${event}`);
+        if (event === 'accountsChanged' && window.ethereum._walletCallbacks?.accountsChanged) {
+          const index = window.ethereum._walletCallbacks.accountsChanged.indexOf(callback);
+          if (index !== -1) {
+            window.ethereum._walletCallbacks.accountsChanged.splice(index, 1);
+          }
+        }
+      },
+      // Optional emit method
+      emit: function(event: string, args: any) {
+        console.log(`Emitting event: ${event} with args:`, args);
+        if (event === 'accountsChanged' && window.ethereum._walletCallbacks?.accountsChanged) {
+          window.ethereum._walletCallbacks.accountsChanged.forEach(callback => {
+            try {
+              callback(args);
+            } catch (err) {
+              console.error('Error in accountsChanged callback during emit:', err);
+            }
+          });
         }
       }
     };
