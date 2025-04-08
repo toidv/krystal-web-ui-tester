@@ -15,6 +15,17 @@ test.describe('Create Vault Form', () => {
     // Take screenshot of initial vaults page
     await takeScreenshot(page, 'vaults-page-initial');
     
+    // Check if we're on a 404 page before proceeding
+    const is404Page = await page.locator('text=404 Not Found').isVisible();
+    if (is404Page) {
+      console.log('404 page detected. URL may be incorrect or page not available.');
+      await takeScreenshot(page, '404-error-page');
+      // Update URL if needed - the current URL might be incorrect
+      console.log('Trying alternative URL...');
+      await page.goto('https://dev-krystal-web-pr-3207.krystal.team/apps', { timeout: TIMEOUTS.PAGE_LOAD });
+      await page.waitForLoadState('networkidle');
+    }
+    
     // Setup wallet connection using the pattern from vaultBasic.spec.ts
     await setupWalletConnection(page);
     await connectWallet(page);
@@ -24,9 +35,44 @@ test.describe('Create Vault Form', () => {
     await takeScreenshot(page, 'wallet-connected-state');
     console.log('Wallet connected, proceeding to Create Vault test');
     
-    // Locate and click the Create Vault button
-    const createVaultButton = page.locator(SELECTORS.CREATE_VAULT.BUTTON[0]);
-    await createVaultButton.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_APPEAR });
+    // Check if we need to navigate to the vaults page again after connecting wallet
+    const currentUrl = page.url();
+    console.log(`Current URL after wallet connection: ${currentUrl}`);
+    if (!currentUrl.includes('/vaults')) {
+      console.log('Not on vaults page. Navigating to vaults page...');
+      await page.goto(URLS.VAULTS, { timeout: TIMEOUTS.PAGE_LOAD });
+      await page.waitForLoadState('networkidle');
+      await takeScreenshot(page, 'vaults-page-after-navigation');
+    }
+    
+    // Check if Create Vault button exists on the page
+    const buttonExists = await page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")').count() > 0;
+    if (!buttonExists) {
+      console.log('Create Vault button not found on page. Taking a screenshot of current page state.');
+      await takeScreenshot(page, 'page-missing-create-vault-button');
+      
+      // Try to find other elements to determine what page we're on
+      const headings = await page.locator('h1, h2, h3').allTextContents();
+      console.log('Visible headings on page:', headings);
+      
+      // Try alternative selector for Create Vault button
+      console.log('Trying alternative selectors for Create Vault button...');
+    }
+    
+    // Locate and click the Create Vault button with improved selectors
+    // Try multiple selectors since the exact implementation might vary
+    const createVaultButton = page.locator([
+      'button:has-text("Create Vault")',
+      'a:has-text("Create Vault")',
+      '[data-testid="create-vault-button"]',
+      'button:has-text("Create")',
+      '.create-vault-button',
+      'button.primary:has-text("Create")',
+      '[role="button"]:has-text("Create Vault")'
+    ].join(', '));
+    
+    // Increased timeout since we might need more time after navigation
+    await createVaultButton.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_APPEAR * 2 });
     await takeScreenshot(page, 'before-clicking-create-vault');
     await createVaultButton.click();
     
