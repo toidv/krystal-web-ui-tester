@@ -25,7 +25,14 @@ npx playwright test --ui
 # Run specific test
 npx playwright test positions.spec.ts
 npx playwright test vaults.spec.ts
+
+# View test report
+npx playwright show-report
 ```
+
+## Screenshots
+
+Screenshots are automatically saved to the `screenshots/` directory at the project root. You can view these after test runs to see visual evidence of test execution.
 
 ## Test Details
 
@@ -34,7 +41,6 @@ The tests simulate a wallet connection using Web3.js with the following configur
 - Test wallet address: `0x1822946a4f1a625044d93a468db6db756d4f89ff`
 - Base URL: `http://192.168.6.16:3000/`
 - Tests run in headed mode by default (with browser visible)
-- Screenshots are saved to the `screenshots/` directory at key points during test execution
 
 ## Test Structure
 
@@ -46,4 +52,3 @@ Each test verifies the following:
 2. UI elements are present and visible
 3. Interactive elements respond correctly
 4. Visual evidence is captured via screenshots
-

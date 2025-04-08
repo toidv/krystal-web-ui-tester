@@ -1,10 +1,17 @@
 import { test, expect, Page } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 // Get directory name for current module (ESM equivalent of __dirname)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Create screenshots directory if it doesn't exist
+const screenshotsDir = path.join(__dirname, '..', '..', 'screenshots');
+if (!fs.existsSync(screenshotsDir)) {
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+}
 
 // Test wallet address to use
 const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
@@ -71,7 +78,10 @@ test.describe('Krystal Vaults Page Tests', () => {
     console.log('Page loaded successfully');
     
     // Take screenshot of initial page load
-    await page.screenshot({ path: 'screenshots/vaults-page-initial.png' });
+    await page.screenshot({ 
+      path: path.join(screenshotsDir, 'vaults-page-initial.png'),
+      fullPage: true 
+    });
     
     // Verify page title
     const pageTitle = await page.title();
@@ -177,7 +187,10 @@ test.describe('Krystal Vaults Page Tests', () => {
     console.log('Page loaded successfully');
     
     // Take screenshot of initial page load
-    await page.screenshot({ path: 'screenshots/vaults-sorting-initial.png' });
+    await page.screenshot({ 
+      path: path.join(screenshotsDir, 'vaults-sorting-initial.png'),
+      fullPage: true 
+    });
     
     // 1. Sort vault list by APR DESC
     console.log('Attempting to sort vaults by APR in descending order...');
@@ -219,7 +232,10 @@ test.describe('Krystal Vaults Page Tests', () => {
     }
     
     // Take screenshot after sorting
-    await page.screenshot({ path: 'screenshots/vaults-sorted-by-apr.png' });
+    await page.screenshot({ 
+      path: path.join(screenshotsDir, 'vaults-sorted-by-apr.png'),
+      fullPage: true 
+    });
     
     // 2. Find vaults and click on the first one to view details
     console.log('Looking for vaults with APR values...');
@@ -256,7 +272,10 @@ test.describe('Krystal Vaults Page Tests', () => {
     console.log('Vault detail page loaded');
     
     // Take screenshot of detail page
-    await page.screenshot({ path: 'screenshots/vault-detail.png' });
+    await page.screenshot({ 
+      path: path.join(screenshotsDir, 'vault-detail.png'),
+      fullPage: true 
+    });
     
     // 3. Validate the APR chart by checking Historical Performance time periods
     console.log('Checking Historical Performance chart and time period selectors...');
@@ -514,7 +533,10 @@ test.describe('Krystal Vaults Page Tests', () => {
     }
     
     // Final screenshot after all validation
-    await page.screenshot({ path: 'screenshots/vault-detail-final.png' });
+    await page.screenshot({ 
+      path: path.join(screenshotsDir, 'vault-detail-final.png'),
+      fullPage: true 
+    });
     console.log('Comprehensive vault details verification test completed');
   });
 });
@@ -533,7 +555,10 @@ async function processVaultDetails(page: Page, index: number, clickableElement: 
   console.log(`Vault ${index+1} details page loaded`);
   
   // Take screenshot of details page
-  await page.screenshot({ path: `screenshots/vault-${index+1}-details.png` });
+  await page.screenshot({ 
+    path: path.join(screenshotsDir, `vault-${index+1}-details.png`),
+    fullPage: true
+  });
   
   // 3. Validate APR - using multiple selectors to find APR information
   try {
