@@ -10,6 +10,7 @@ declare global {
     ethereum: {
       request: (args: any) => Promise<any>;
       on: (event: string, callback: any) => void;
+      emit?: (event: string, args: any) => void;
       selectedAddress: string;
       isMetaMask?: boolean;
       isRabby?: boolean;
@@ -182,7 +183,7 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
           }
         });
 
-        // Trigger any global ethereum event handlers
+        // Check if emit function exists before calling it
         if (typeof window.ethereum.emit === 'function') {
           try {
             window.ethereum.emit('accountsChanged', [address]);
