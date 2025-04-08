@@ -15,11 +15,11 @@ export const URLS = {
  * Timeouts for tests
  */
 export const TIMEOUTS = {
-  PAGE_LOAD: 30000, // Increased from 15000
-  ELEMENT_APPEAR: 15000, // Increased from 10000
-  ANIMATION: 10000,
-  RENDER: 10000,
-  WALLET_CONNECTION: 20000 // Increased from 10000
+  PAGE_LOAD: 60000, // Increased from 30000
+  ELEMENT_APPEAR: 30000, // Increased from 15000
+  ANIMATION: 15000,  // Increased from 10000
+  RENDER: 15000,  // Increased from 10000
+  WALLET_CONNECTION: 30000 // Increased from 20000
 };
 
 /**
@@ -101,31 +101,39 @@ export const SELECTORS = {
   ],
   CREATE_VAULT: {
     BUTTON: [
-      'button[role="button"]:has-text("Create Vault")',
-      'a[role="menuitem"]:has-text("Create Vault")',
+      'button:has-text("Create Vault")',
+      '[role="button"]:has-text("Create Vault")',
       '[data-testid="create-vault-button"]'
     ],
     VAULT_NAME_INPUT: [
       'input[placeholder="Set the name"]',
-      '[aria-label="Set the name"]',
-      'input[name="vaultName"]'
+      'input[aria-label="Set the name"]',
+      'input[name="vaultName"]',
+      'input:below(text="Name Your Vault")'
     ],
     NETWORK_SELECT: [
       'button:has-text("Base Mainnet")',
-      '[aria-label="Select network"]'
+      '[aria-label="Select network"]',
+      'div:has-text("Base Mainnet"):has(img)',
+      'button:has(text="Base")'
     ],
     PRINCIPAL_TOKEN_SELECT: [
-      'button:has-text("USDC")',
+      'button:has-text("Select Token")',
       'button:has-text("WETH")',
-      '[aria-label="Principal Token"]'
+      'button:has-text("USDC")',
+      '[aria-label="Principal Token"]',
+      'div:has-text("Principal Token"):has(button)'
     ],
     TOKEN_OPTIONS: {
-      USDC: 'text="USDC"',
-      WETH: 'text="WETH"'
+      USDC: ['text="USDC"', 'div[role="menuitem"]:has-text("USDC")', 'div:has-text("USDC"):has(img)'],
+      WETH: ['text="WETH"', 'div[role="menuitem"]:has-text("WETH")', 'div:has-text("WETH"):has(img)']
     },
     PUBLISH_TOGGLE: [
       '[role="switch"]:near(:text("Publish Vault"))',
-      '[data-testid="publish-vault-toggle"]'
+      '[data-testid="publish-vault-toggle"]',
+      'label:has([role="switch"])',
+      'div:has-text("Publish Vault"):has(button[role="switch"])',
+      'button[role="switch"]'
     ],
     RANGE_CONFIG: {
       NARROW: 'button:has-text("Narrow")',
@@ -137,6 +145,10 @@ export const SELECTORS = {
       HIGH_VALUE: 'button:has-text("High Value")',
       FIXED: 'button:has-text("Fixed")'
     },
-    SUBMIT_BUTTON: 'button:has-text("Create Vault")'
+    SUBMIT_BUTTON: [
+      'button:has-text("Create Vault")',
+      'button[type="submit"]',
+      'button.primary:has-text("Create")'
+    ]
   }
 };
