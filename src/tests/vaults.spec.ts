@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Test wallet address to use
 const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
-const VAULTS_URL = 'https://dev-krystal-web-pr-3207.krystal.team/vaults';
+const VAULTS_URL = 'http://192.168.6.16:3000/vaults';
 
 /**
  * Setup Web3 wallet connection and inject it into the browser context
@@ -54,65 +54,6 @@ async function setupWalletConnection(page: Page): Promise<void> {
   console.log('Web3 wallet connection setup completed');
 }
 
-/**
- * Check if wallet is whitelisted, prompt user to connect real wallet if needed
- */
-async function verifyWalletWhitelist(page: Page): Promise<boolean> {
-  // Visit the vaults page first
-  await page.goto(VAULTS_URL);
-  await page.waitForLoadState('networkidle');
-  
-  // Check if there's a whitelist error or connection requirement message
-  const requiresRealWallet = await page.evaluate(() => {
-    // Look for elements suggesting whitelist verification is needed
-    const errorElements = document.querySelectorAll('.error-message, .whitelist-error, .connection-required');
-    const errorTexts = Array.from(document.querySelectorAll('div, p, span, h1, h2, h3, h4, h5, h6'))
-      .map(el => el.textContent?.toLowerCase() || '')
-      .filter(text => 
-        text.includes('whitelist') || 
-        text.includes('connect wallet') || 
-        text.includes('access denied') ||
-        text.includes('not authorized')
-      );
-    
-    return errorElements.length > 0 || errorTexts.length > 0;
-  });
-  
-  if (requiresRealWallet) {
-    // Take screenshot of whitelist verification requirement
-    await page.screenshot({ path: 'screenshots/whitelist-verification-required.png' });
-    console.log('⚠️ Whitelist verification required. Manual wallet connection needed.');
-    
-    // Display instructions for manual wallet connection
-    console.log('----------------------------------------------------------------------------------------');
-    console.log('MANUAL ACTION REQUIRED: Please connect your wallet using MetaMask or Rabby extension');
-    console.log('1. Open your wallet extension (MetaMask/Rabby)');
-    console.log('2. Connect to the site when prompted');
-    console.log('3. Ensure your wallet is whitelisted for access');
-    console.log('4. After connection, the test will continue automatically');
-    console.log('----------------------------------------------------------------------------------------');
-    
-    // Wait for wallet connection (up to 2 minutes)
-    try {
-      // Wait for either the "Connect Wallet" button to disappear or for content to appear
-      await Promise.race([
-        page.waitForSelector('.connect-wallet-button, button:has-text("Connect Wallet")', { state: 'detached', timeout: 120000 }),
-        page.waitForSelector('.vault-content, .portfolio-section, .vault-item', { timeout: 120000 })
-      ]);
-      
-      console.log('✅ Wallet connected successfully');
-      await page.screenshot({ path: 'screenshots/wallet-connected.png' });
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to connect wallet within the timeout period', error);
-      return false;
-    }
-  }
-  
-  console.log('✅ No whitelist verification required, continuing with test');
-  return true;
-}
-
 test.describe('Krystal Vaults Page Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Setup wallet connection before each test
@@ -122,14 +63,7 @@ test.describe('Krystal Vaults Page Tests', () => {
   test('should load vaults page and verify UI elements', async ({ page }) => {
     console.log('Starting Vaults page test...');
     
-    // First verify whitelist and wallet connection if needed
-    const whitelistVerified = await verifyWalletWhitelist(page);
-    if (!whitelistVerified) {
-      test.skip(); // Use proper test.skip() syntax here
-      return;
-    }
-    
-    // Re-visit the vaults page to ensure a fresh state after verification
+    // Visit the vaults page
     await page.goto(VAULTS_URL);
     
     // Wait for the page to load completely
