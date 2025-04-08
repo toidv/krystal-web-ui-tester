@@ -30,6 +30,20 @@ export const SELECTORS = {
     '.connect-wallet-button',
     'a:has-text("Connect Wallet")'
   ],
+  WALLET_PROVIDERS: {
+    METAMASK: [
+      'button:has-text("MetaMask")',
+      'li:has-text("MetaMask")',
+      '[data-provider="metamask"]',
+      'div[role="menuitem"]:has-text("MetaMask")'
+    ],
+    RABBY: [
+      'button:has-text("Rabby")',
+      'li:has-text("Rabby")',
+      '[data-provider="rabby"]',
+      'div[role="menuitem"]:has-text("Rabby")'
+    ]
+  },
   WALLET_ADDRESS: [
     '[data-testid="wallet-address"]',
     '[class*="wallet-address"]',
