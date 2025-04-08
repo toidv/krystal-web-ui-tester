@@ -8,6 +8,15 @@ import { SELECTORS } from './constants';
 export const TEST_WALLET_ADDRESS = '0x1822946a4f1a625044d93a468db6db756d4f89ff';
 
 /**
+ * Extend Window interface to include our custom property
+ */
+declare global {
+  interface Window {
+    walletInjected?: boolean;
+  }
+}
+
+/**
  * Setup Web3 wallet connection and inject it into the browser context
  */
 export async function setupWalletConnection(page: Page): Promise<void> {
@@ -63,7 +72,7 @@ export async function connectWallet(page: Page): Promise<void> {
   
   try {
     // Look for connect wallet button using various selectors
-    const connectWalletButton = await page.locator(SELECTORS.CONNECT_WALLET_BUTTON).first();
+    const connectWalletButton = await page.locator(SELECTORS.CONNECT_WALLET_BUTTON[0]).first();
     
     // Verify connect button is visible
     const isConnectVisible = await connectWalletButton.isVisible();
