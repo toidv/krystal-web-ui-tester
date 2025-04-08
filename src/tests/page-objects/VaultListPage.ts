@@ -176,64 +176,100 @@ export class VaultListPage {
       await depositButton.click();
       console.log('Clicked on deposit button');
       
-      // Verify deposit modal appears
-      const depositModal = await this.page.locator('.modal, [role="dialog"], dialog').first();
-      const modalVisible = await depositModal.isVisible({ timeout: TIMEOUTS.ELEMENT_APPEAR });
-      console.log(`Deposit modal visible: ${modalVisible}`);
+      // Improved modal detection with multiple approaches
+      let modalVisible = false;
       
-      if (modalVisible) {
-        await takeScreenshot(this.page, 'vaults-deposit-modal');
-        
-        // Test MAX button
-        const maxButton = await this.page.locator('button:has-text("MAX"), button:has-text("Max")').first();
-        if (await maxButton.isVisible()) {
-          await maxButton.click();
-          console.log('Clicked MAX button');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+      // Try different selectors to locate the modal
+      const modalSelectors = [
+        '[role="dialog"]',
+        'dialog',
+        '.modal',
+        '[aria-modal="true"]', 
+        '.dialog-content',
+        // Dialog from shadcn/ui
+        '[data-state="open"]',
+        // Check for specific content that would be in the deposit modal
+        'div:has-text("Deposit Amount"):has(input[type="number"])'
+      ];
+      
+      // Try each selector
+      for (const selector of modalSelectors) {
+        const modal = this.page.locator(selector).first();
+        if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
+          console.log(`Modal found with selector: ${selector}`);
+          modalVisible = true;
           
-          // Check if amount field was populated
-          const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
-          const amountValue = await amountField.inputValue();
-          const hasAmount = parseFloat(amountValue) > 0;
-          console.log(`Amount after MAX click: ${amountValue}, Is greater than 0: ${hasAmount}`);
+          // Take screenshot of the modal
+          await takeScreenshot(this.page, 'vaults-deposit-modal');
           
-          if (hasAmount) {
-            // Validate vault share and deposit value calculations
-            await this.validateDepositCalculations();
-            await takeScreenshot(this.page, 'vaults-deposit-max-amount');
+          // For shadcn Dialog, check for DialogContent
+          if (selector === '[data-state="open"]') {
+            console.log('Found shadcn Dialog, checking for specific content');
+            const dialogContent = this.page.locator('[role="dialog"][data-state="open"]');
+            if (await dialogContent.isVisible()) {
+              console.log('Dialog content is visible');
+            }
           }
           
-          // Clear the field for manual input test
-          await amountField.fill('');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-        }
-        
-        // Test manual input - input 1 as amount
-        const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
-        if (await amountField.isVisible()) {
-          await amountField.fill('1');
-          console.log('Entered manual amount: 1');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          // Test MAX button
+          const maxButton = await this.page.locator('button:has-text("MAX"), button:has-text("Max")').first();
+          if (await maxButton.isVisible()) {
+            await maxButton.click();
+            console.log('Clicked MAX button');
+            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+            
+            // Check if amount field was populated
+            const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
+            const amountValue = await amountField.inputValue();
+            const hasAmount = parseFloat(amountValue) > 0;
+            console.log(`Amount after MAX click: ${amountValue}, Is greater than 0: ${hasAmount}`);
+            
+            if (hasAmount) {
+              // Validate vault share and deposit value calculations
+              await this.validateDepositCalculations();
+              await takeScreenshot(this.page, 'vaults-deposit-max-amount');
+            }
+            
+            // Clear the field for manual input test
+            await amountField.fill('');
+            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          }
           
-          // Validate vault share and deposit value with manual input
-          await this.validateDepositCalculations();
-          await takeScreenshot(this.page, 'vaults-deposit-manual-amount');
+          // Test manual input - input 1 as amount
+          const amountField = await this.page.locator('input[type="number"], input[placeholder*="Amount"]').first();
+          if (await amountField.isVisible()) {
+            await amountField.fill('1');
+            console.log('Entered manual amount: 1');
+            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+            
+            // Validate vault share and deposit value with manual input
+            await this.validateDepositCalculations();
+            await takeScreenshot(this.page, 'vaults-deposit-manual-amount');
+          }
+          
+          // Close modal
+          const closeButton = await this.page.locator(
+            '.modal button[aria-label="Close"], ' +
+            '[role="dialog"] button[aria-label="Close"], ' +
+            'dialog button[aria-label="Close"], ' +
+            'button:has-text("Cancel"), ' +
+            'button:has-text("Close")'
+          ).first();
+          
+          if (await closeButton.isVisible()) {
+            await closeButton.click();
+            console.log('Modal closed');
+            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          }
+          
+          break; // Exit loop if modal was found and processed
         }
-        
-        // Close modal
-        const closeButton = await this.page.locator(
-          '.modal button[aria-label="Close"], ' +
-          '[role="dialog"] button[aria-label="Close"], ' +
-          'dialog button[aria-label="Close"], ' +
-          'button:has-text("Cancel"), ' +
-          'button:has-text("Close")'
-        ).first();
-        
-        if (await closeButton.isVisible()) {
-          await closeButton.click();
-          console.log('Modal closed');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-        }
+      }
+      
+      if (!modalVisible) {
+        console.log('Warning: Deposit button was clicked but no modal was detected');
+        // Try to take a screenshot anyway to see what's on screen
+        await takeScreenshot(this.page, 'after-deposit-click-no-modal');
       }
     } else {
       console.log('Deposit button not enabled or not found');
