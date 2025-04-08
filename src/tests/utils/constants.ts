@@ -1,4 +1,3 @@
-
 /**
  * Base URLs for tests
  */
@@ -142,14 +141,16 @@ export const SELECTORS = {
       ]
     },
     PUBLISH_TOGGLE: [
-      '[role="switch"]:near(:text("Publish Vault"))',
-      '[data-testid="publish-vault-toggle"]',
       'label:has([role="switch"])',
-      'div:has-text("Publish Vault"):has(button[role="switch"])',
-      'button[role="switch"]',
-      '.chakra-switch > input[type="checkbox"]',
-      '.chakra-switch'
+      '.chakra-switch input[type="checkbox"]',
+      'input[type="checkbox"].chakra-switch__input',
+      ':text("Publish Vault") ~ [role="switch"]',
+      '.chakra-switch',
+      'div:has-text("Publish Vault") .chakra-switch',
+      'div:has-text("Publish Vault") span[role="checkbox"]',
+      'label.chakra-switch'
     ],
+    TOGGLE_LABEL: 'text="Publish Vault"',
     RANGE_CONFIG: {
       NARROW: 'button:has-text("Narrow")',
       WIDE: 'button:has-text("Wide")'
