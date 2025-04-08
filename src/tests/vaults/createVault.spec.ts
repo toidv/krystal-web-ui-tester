@@ -6,25 +6,31 @@ import { setupWalletConnection, connectWallet, verifyWalletConnected } from '../
 import { VaultListPage } from '../page-objects/VaultListPage';
 
 test.describe('Create Vault Form', () => {
+  // Initialize screenshots directory before tests
   initScreenshotsDir();
 
-    test.beforeEach(async ({ page }) => {
-      // Setup wallet connection before each test
-      await setupWalletConnection(page);
-    });
+  test.beforeEach(async ({ page }) => {
+    // Setup wallet connection before each test
+    await setupWalletConnection(page);
+  });
 
   test('should correctly validate and display create vault form options', async ({ page }) => {
     console.log('Starting Create Vault test...');
     const vaultListPage = new VaultListPage(page);
+    
     // Visit the vaults page
     await vaultListPage.goto();
     await vaultListPage.waitForPageLoad();
+
+    // Take screenshot of initial vaults page
+    await takeScreenshot(page, 'vaults-page-initial');
 
     // Connect wallet and verify connection
     await connectWallet(page);
     await verifyWalletConnected(page);
   
     console.log('Wallet connected, proceeding to Create Vault test');
+    await takeScreenshot(page, 'wallet-connected-state');
 
     // Verify basic UI elements
     await vaultListPage.verifyBasicUIElements();
@@ -32,38 +38,36 @@ test.describe('Create Vault Form', () => {
     // Verify vault table exists
     await vaultListPage.verifyVaultTable();
     
-    // Check if Create Vault button exists on the page
-    const buttonExists = await page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")').count() > 0;
+    // Use first() to specifically select one element when multiple are available
+    console.log('Looking for Create Vault buttons on the page...');
+    const elements = await page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")').count();
+    console.log(`Found ${elements} Create Vault elements on the page`);
+    
+    // Take a screenshot to see what's on the page
+    await takeScreenshot(page, 'before-finding-create-vault-button');
+    
+    // Use a more specific selector targeting only the button, not the link
+    const createVaultButton = page.getByRole('button', { name: 'Create Vault' });
+    
+    // Check if the button exists before waiting for it
+    const buttonExists = await createVaultButton.count() > 0;
     if (!buttonExists) {
-      console.log('Create Vault button not found on page. Taking a screenshot of current page state.');
-      await takeScreenshot(page, 'page-missing-create-vault-button');
-      
-      // Try to find other elements to determine what page we're on
-      const headings = await page.locator('h1, h2, h3').allTextContents();
-      console.log('Visible headings on page:', headings);
-      
-      // Try alternative selector for Create Vault button
-      console.log('Trying alternative selectors for Create Vault button...');
+      console.log('Button not found, checking for alternative elements');
+      // Try the link instead if button is not found
+      const createVaultLink = page.getByRole('menuitem', { name: /Create Vault/ });
+      if (await createVaultLink.count() > 0) {
+        console.log('Found Create Vault link instead of button');
+        await createVaultLink.click();
+      } else {
+        throw new Error('No Create Vault button or link found on the page');
+      }
+    } else {
+      console.log('Create Vault button found, clicking it');
+      await createVaultButton.click();
     }
     
-    // Locate and click the Create Vault button with improved selectors
-    // Try multiple selectors since the exact implementation might vary
-    const createVaultButton = page.locator([
-      'button:has-text("Create Vault")',
-      'a:has-text("Create Vault")',
-      '[data-testid="create-vault-button"]',
-      'button:has-text("Create")',
-      '.create-vault-button',
-      'button.primary:has-text("Create")',
-      '[role="button"]:has-text("Create Vault")'
-    ].join(', '));
-    
-    // Increased timeout since we might need more time after navigation
-    await createVaultButton.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_APPEAR * 2 });
-    await takeScreenshot(page, 'before-clicking-create-vault');
-    await createVaultButton.click();
-    
     // Wait for the create vault form to appear
+    console.log('Waiting for the create vault form to appear');
     await page.waitForSelector('text="Set Name"', { timeout: TIMEOUTS.ELEMENT_APPEAR });
     await takeScreenshot(page, 'create-vault-form');
     

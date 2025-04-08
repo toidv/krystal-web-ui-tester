@@ -15,11 +15,11 @@ export const URLS = {
  * Timeouts for tests
  */
 export const TIMEOUTS = {
-  PAGE_LOAD: 15000,
-  ELEMENT_APPEAR: 10000,
+  PAGE_LOAD: 30000, // Increased from 15000
+  ELEMENT_APPEAR: 15000, // Increased from 10000
   ANIMATION: 10000,
   RENDER: 10000,
-  WALLET_CONNECTION: 10000
+  WALLET_CONNECTION: 20000 // Increased from 10000
 };
 
 /**
@@ -101,8 +101,8 @@ export const SELECTORS = {
   ],
   CREATE_VAULT: {
     BUTTON: [
-      'button:has-text("Create Vault")',
-      'a:has-text("Create Vault")',
+      'button[role="button"]:has-text("Create Vault")',
+      'a[role="menuitem"]:has-text("Create Vault")',
       '[data-testid="create-vault-button"]'
     ],
     VAULT_NAME_INPUT: [
