@@ -2,10 +2,12 @@
 import { test, expect } from '@playwright/test';
 import { takeScreenshot } from '../utils/screenshotHelper';
 import { URLS, TIMEOUTS, SELECTORS } from '../utils/constants';
-import { setupWallet } from '../utils/setupWallet';
+import { setupWalletConnection, connectWallet, verifyWalletConnected } from '../utils/setupWallet';
 
 test.describe('Create Vault Form', () => {
   test('should correctly validate and display create vault form options', async ({ page }) => {
+    console.log('Starting Create Vault test...');
+    
     // Navigate to vaults page
     await page.goto(URLS.VAULTS, { timeout: TIMEOUTS.PAGE_LOAD });
     await page.waitForLoadState('networkidle');
@@ -13,8 +15,13 @@ test.describe('Create Vault Form', () => {
     // Take screenshot of initial vaults page
     await takeScreenshot(page, 'vaults-page-initial');
     
-    // Setup wallet connection first before proceeding to Create Vault
-    await setupWallet(page);
+    // Setup wallet connection using the pattern from vaultBasic.spec.ts
+    await setupWalletConnection(page);
+    await connectWallet(page);
+    await verifyWalletConnected(page);
+    
+    // Take screenshot after wallet connection
+    await takeScreenshot(page, 'wallet-connected-state');
     console.log('Wallet connected, proceeding to Create Vault test');
     
     // Locate and click the Create Vault button
@@ -69,7 +76,6 @@ test.describe('Create Vault Form', () => {
     await expect(publishToggle).toHaveAttribute('data-state', initialState);
     
     // 4. Test Range Config options (Narrow vs Wide)
-    // Test selecting Narrow
     const narrowRangeButton = page.locator(SELECTORS.CREATE_VAULT.RANGE_CONFIG.NARROW);
     const wideRangeButton = page.locator(SELECTORS.CREATE_VAULT.RANGE_CONFIG.WIDE);
     
@@ -126,5 +132,6 @@ test.describe('Create Vault Form', () => {
     
     // Take a final screenshot of the completed form
     await takeScreenshot(page, 'create-vault-form-completed');
+    console.log('Test completed successfully');
   });
 });
