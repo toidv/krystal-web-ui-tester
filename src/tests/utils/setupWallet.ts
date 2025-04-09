@@ -177,7 +177,7 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
         providerFound = true;
         
         // Add a delay to simulate the wallet extension response
-        await page.waitForTimeout(TIMEOUTS.ANIMATION);
+        await page.waitForTimeout(2000);
         break;
       }
     }
