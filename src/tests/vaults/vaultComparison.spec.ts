@@ -26,9 +26,6 @@ async function processVaultDetails(vaultIndex: number, vaultListPage: VaultListP
   // Wait for detail page to load
   await vaultDetailPage.waitForDetailPageLoad();
   
-  // Take screenshot of details page
-  await takeScreenshot(vaultDetailPage.page, `vault-${vaultIndex+1}-details`);
-  
   // Validate APR and performance information
   await vaultDetailPage.verifyPerformanceChart();
   
@@ -67,9 +64,6 @@ test.describe('Krystal Vault Comparison Tests', () => {
     // Connect wallet and verify connection
     await connectWallet(page);
     await verifyWalletConnected(page);
-    
-    // Take screenshot after wallet connection
-    await takeScreenshot(page, 'wallet-connected-comparison');
     
     // Sort by APR to ensure consistent ordering
     await vaultListPage.sortByAPR();

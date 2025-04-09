@@ -52,6 +52,8 @@ test.describe('Create Vault Form', () => {
         console.log('Found Create Vault link instead of button');
         await createVaultLink.click();
       } else {
+        // Take screenshot for error case
+        await takeScreenshot(page, 'create-vault-button-not-found');
         throw new Error('No Create Vault button or link found on the page');
       }
     } else {
@@ -130,61 +132,48 @@ test.describe('Create Vault Form', () => {
     
     // 3. Test toggling Publish Vault
     console.log('Testing publish vault toggle');
+    // Find the toggle using various selectors
+    let publishToggle = null;
+    for (const selector of SELECTORS.CREATE_VAULT.PUBLISH_TOGGLE) {
+      const toggle = page.locator(selector);
+      if (await toggle.count() > 0) {
+        publishToggle = toggle;
+        console.log(`Found publish toggle with selector: ${selector}`);
+        break;
+      }
+    }
     
-    // Try different approaches to interact with the toggle
-    
-    // First look for the toggle label and try clicking it
-    const toggleLabel = page.locator(SELECTORS.CREATE_VAULT.TOGGLE_LABEL);
-    if (await toggleLabel.count() > 0) {
-      console.log('Toggle label found, attempting to click it');
+    if (publishToggle) {
+      await publishToggle.waitFor({ state: 'visible' });
+      
       try {
-        // Try force clicking the label which may be more reliable than clicking the toggle directly
-        await toggleLabel.click({ force: true, timeout: 10000 });
-        console.log('Successfully clicked toggle label');
-        await page.waitForTimeout(1000);
+        // Toggle on if it's off, or toggle off if it's on
+        await publishToggle.click();
+        
+        // Toggle back to original state
+        await publishToggle.click();
       } catch (error) {
-        console.log(`Failed to click toggle label: ${error.message}`);
+        console.error('Failed to click publish toggle:', error);
+        // Take screenshot for error case
+        await takeScreenshot(page, 'publish-toggle-click-error');
+        
+        // Try alternative methods to click the toggle
+        try {
+          console.log('Trying alternative toggle click method...');
+          // Try JavaScript click which bypasses pointer interception
+          await page.evaluate(() => {
+            const checkbox = document.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+              (checkbox as HTMLElement).click();
+            }
+          });
+          console.log('Executed JavaScript click on checkbox');
+        } catch (jsError) {
+          console.error('JavaScript click also failed:', jsError);
+        }
       }
     } else {
-      console.log('Toggle label not found');
-    }
-    
-    // If that didn't work, try force clicking directly on the toggle
-    try {
-      // Look for the checkbox as a direct target
-      const checkbox = page.locator('input[type="checkbox"].chakra-switch__input, .chakra-switch input[type="checkbox"]').first();
-      
-      if (await checkbox.count() > 0) {
-        console.log('Checkbox found, attempting to click it directly with force option');
-        // Try JavaScript click which bypasses pointer interception
-        await page.evaluate(() => {
-          const checkbox = document.querySelector('input[type="checkbox"].chakra-switch__input, .chakra-switch input[type="checkbox"]');
-          if (checkbox) {
-            (checkbox as HTMLElement).click();
-          }
-        });
-        console.log('Executed JavaScript click on checkbox');
-        await page.waitForTimeout(1000);
-      } else {
-        console.log('Checkbox not found');
-      }
-    } catch (error) {
-      console.log(`Failed to click checkbox: ${error.message}`);
-    }
-    
-    // As a last resort, try to click the switch container
-    try {
-      const switchContainer = page.locator('.chakra-switch').first();
-      if (await switchContainer.count() > 0) {
-        console.log('Switch container found, attempting to click it with force option');
-        await switchContainer.click({ force: true, timeout: 10000 });
-        console.log('Successfully clicked switch container');
-        await page.waitForTimeout(1000);
-      } else {
-        console.log('Switch container not found');
-      }
-    } catch (error) {
-      console.log(`Failed to click switch container: ${error.message}`);
+      console.log('Publish toggle not found, skipping this section');
     }
     
     // Skip the Range Config tests if elements are not present

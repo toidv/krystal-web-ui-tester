@@ -83,6 +83,8 @@ test.describe('Krystal Positions Page Tests', () => {
       }
     } catch (error) {
       console.log('No positions found or positions are still loading');
+      // Take a screenshot when there's an error loading positions
+      await takeScreenshot(page, 'positions-error-loading');
     }
     
     // Verify search functionality if it exists

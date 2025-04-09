@@ -49,6 +49,8 @@ test.describe('Krystal Vaults Basic Tests', () => {
       await vaultListPage.clickFirstDepositButton();
     } catch (error) {
       console.log('No vaults found or vaults are still loading:', error);
+      // Take a screenshot when there's an error loading vaults
+      await takeScreenshot(page, 'vaults-loading-error');
     }
     
     // Test search functionality

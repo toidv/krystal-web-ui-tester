@@ -29,9 +29,6 @@ test.describe('Krystal Vault Details Tests', () => {
     await connectWallet(page);
     await verifyWalletConnected(page);
     
-    // Take screenshot after wallet connection
-    await takeScreenshot(page, 'wallet-connected-vault-detail');
-    
     // 1. Sort vault list by APR DESC
     await vaultListPage.sortByAPR();
     
@@ -42,6 +39,8 @@ test.describe('Krystal Vault Details Tests', () => {
     
     if (!vaultElement) {
       console.log('No vaults found on the page, skipping detail page tests');
+      // Take error screenshot if no vaults are found
+      await takeScreenshot(page, 'no-vaults-found-error');
       return;
     }
     
