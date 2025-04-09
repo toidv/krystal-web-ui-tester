@@ -1,3 +1,4 @@
+
 /**
  * Base URLs for tests
  */
@@ -25,6 +26,7 @@ export const TIMEOUTS = {
  * Selectors used in tests
  */
 export const SELECTORS = {
+  URLS,
   CONNECT_WALLET_BUTTON: [
     'button:has-text("Connect Wallet")', 
     'button:has-text("Connect")',
@@ -86,7 +88,13 @@ export const SELECTORS = {
     '.recharts-responsive-container',
     'svg.recharts-surface',
     '[class*="chart"]',
-    'svg g path'
+    'svg g path',
+    '.recharts-wrapper'
+  ],
+  CHART_TOOLTIP: [
+    '.recharts-tooltip-wrapper',
+    '[class*="tooltip"]',
+    '.recharts-default-tooltip'
   ],
   TIME_PERIODS: ['24h', '7D', '30D'],
   DEPOSIT_BUTTON: 'button:has-text("Deposit"), button:has-text("+ Deposit")',
@@ -97,6 +105,12 @@ export const SELECTORS = {
     'div.column-header:has-text("APR")',
     'button:has-text("APR")',
     'text=APR'
+  ],
+  APR_VALUE: [
+    '[data-testid="apr-value"]',
+    'text=/APR:?\s*[0-9.]+%/',
+    'text=/[0-9.]+%\s*APR/',
+    '[class*="apr"]:has-text("%")'
   ],
   CREATE_VAULT: {
     BUTTON: [

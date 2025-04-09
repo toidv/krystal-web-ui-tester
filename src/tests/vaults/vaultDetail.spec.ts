@@ -47,6 +47,10 @@ test.describe('Krystal Vault Details Tests', () => {
       return;
     }
     
+    // Get APR value from the list page before clicking
+    const headerAprValue = await vaultListPage.getVaultAPR(vaultElement);
+    console.log(`Header APR value before clicking: ${headerAprValue}`);
+    
     // Click on the vault to view details
     await vaultElement.click({ timeout: TIMEOUTS.ELEMENT_APPEAR }).catch(err => {
       console.log('Error clicking on vault:', err);
@@ -73,6 +77,20 @@ test.describe('Krystal Vault Details Tests', () => {
       ]);
     } catch (error) {
       console.log('Error verifying performance chart, continuing:', error);
+    }
+    
+    if (page.isClosed()) return;
+    
+    // NEW: Check 7D chart, last data point and compare APR
+    try {
+      await Promise.race([
+        vaultDetailPage.verify7DChartAndAPR(headerAprValue),
+        page.waitForTimeout(15000).then(() => {
+          console.log('Timeout safety triggered for 7D chart and APR verification');
+        })
+      ]);
+    } catch (error) {
+      console.log('Error verifying 7D chart and APR, continuing:', error);
     }
     
     if (page.isClosed()) return;

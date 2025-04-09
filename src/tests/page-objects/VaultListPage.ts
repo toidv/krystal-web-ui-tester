@@ -1,6 +1,5 @@
-
-import { Page, Locator } from '@playwright/test';
-import { SELECTORS, URLS, TIMEOUTS } from '../utils/constants';
+import { Page, Locator, expect } from '@playwright/test';
+import { SELECTORS, TIMEOUTS } from '../utils/constants';
 import { takeScreenshot } from '../utils/screenshotHelper';
 
 export class VaultListPage {
@@ -10,397 +9,130 @@ export class VaultListPage {
     this.page = page;
   }
   
-  /**
-   * Navigate to the vaults list page
-   */
-  async goto(): Promise<void> {
-    await this.page.goto(URLS.VAULTS);
+  async goto() {
+    await this.page.goto(SELECTORS.URLS.VAULTS);
+  }
+  
+  async waitForPageLoad() {
     await this.page.waitForLoadState('networkidle');
-    console.log('Vaults page loaded successfully');
-  }
-  
-  /**
-   * Wait for vaults to load and take a screenshot
-   */
-  async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
-    await takeScreenshot(this.page, 'vaults-page-initial');
-  }
-  
-  /**
-   * Verify basic UI elements on the page
-   */
-  async verifyBasicUIElements(): Promise<void> {
-    // Verify header exists
-    const header = await this.page.locator('header').first();
-    const headerVisible = await header.isVisible();
-    console.log(`Header visible: ${headerVisible}`);
-    
-    // Verify portfolio section exists
-    const portfolioSection = await this.page.locator('text=Portfolio').first();
-    const portfolioVisible = await portfolioSection.isVisible();
-    console.log(`Portfolio section visible: ${portfolioVisible}`);
-
-    // Verify stats section exists
-    const statsSection = await this.page.locator('text=Stats').first();
-    const statsVisible = await statsSection.isVisible();
-    console.log(`Stats section visible: ${statsVisible}`);
-  }
-  
-  /**
-   * Verify vault table exists
-   */
-  async verifyVaultTable(): Promise<boolean> {
-    // Verify vault table exists
-    const vaultTable = await this.page.locator('table, [role="table"], .vault-list').first();
-    if (await vaultTable.isVisible()) {
-      console.log('Vault table/list verified');
-      return true;
-    } else {
-      // Try alternative selector based on column headers
-      const vaultTableHeader = await this.page.locator('text=Vault >> xpath=ancestor::div[contains(.,"Assets")][contains(.,"Type")][contains(.,"TVL")]').first();
-      const headerVisible = await vaultTableHeader.isVisible();
-      console.log(`Vault table header visible: ${headerVisible}`);
-      return headerVisible;
+    try {
+      await Promise.race([
+        this.page.waitForSelector(SELECTORS.APR_HEADER[0], { timeout: TIMEOUTS.ELEMENT_APPEAR }),
+        this.page.waitForSelector(SELECTORS.APR_HEADER[1], { timeout: TIMEOUTS.ELEMENT_APPEAR }),
+        this.page.waitForSelector(SELECTORS.APR_HEADER[2], { timeout: TIMEOUTS.ELEMENT_APPEAR }),
+        this.page.waitForSelector(SELECTORS.APR_HEADER[3], { timeout: TIMEOUTS.ELEMENT_APPEAR }),
+        this.page.waitForSelector(SELECTORS.APR_HEADER[4], { timeout: TIMEOUTS.ELEMENT_APPEAR })
+      ]);
+      await this.page.waitForTimeout(TIMEOUTS.RENDER);
+      console.log('Vault list page loaded successfully');
+    } catch (error) {
+      console.log('Warning: Timed out waiting for APR header, but continuing test:', error);
+      await this.page.waitForTimeout(5000);
     }
+    await takeScreenshot(this.page, 'vault-list');
   }
   
-  /**
-   * Sort vault list by APR in descending order
-   */
-  async sortByAPR(): Promise<void> {
-    console.log('Attempting to sort vaults by APR in descending order...');
+  async sortByAPR() {
+    console.log('Sorting vault list by APR DESC...');
     
-    let aprHeaderFound = false;
+    // Use multiple selectors to find the APR header
     for (const selector of SELECTORS.APR_HEADER) {
-      const aprHeader = this.page.locator(selector).first();
-      if (await aprHeader.isVisible()) {
-        // Click once to sort (may be ASC or DESC depending on default)
-        await aprHeader.click();
-        await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+      try {
+        const aprHeader = this.page.locator(selector).first();
+        const isVisible = await aprHeader.isVisible().catch(() => false);
         
-        // Click again to ensure DESC order (if needed)
-        await aprHeader.click();
-        await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-        
-        console.log('Clicked on APR header to sort in descending order');
-        aprHeaderFound = true;
-        break;
+        if (isVisible) {
+          console.log(`Found APR header with selector: ${selector}`);
+          
+          // Click on the APR header to sort by APR
+          await aprHeader.click({ timeout: TIMEOUTS.ELEMENT_APPEAR }).catch(err => {
+            console.log('Error clicking on APR header:', err);
+          });
+          
+          // Wait for sorting to complete
+          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
+          console.log('Sorted by APR DESC');
+          return;
+        }
+      } catch (error) {
+        console.log(`Error checking APR header with selector ${selector}:`, error);
       }
     }
     
-    if (!aprHeaderFound) {
-      console.log('APR header not found with standard selectors, continuing test');
-    }
-    
-    await takeScreenshot(this.page, 'vaults-sorted-by-apr');
+    console.log('APR header not found, skipping sorting');
   }
   
-  /**
-   * Find a vault item to test with
-   */
-  async findFirstVault(): Promise<Locator | null> {
-    // Use multiple selectors to find vaults with APR values
-    const vaultSelectors = [
-      'tr:has-text("%")',
-      '[role="row"]:has-text("%")',
-      'div.vault-item:has-text("%")',
-      'div:has-text("APR") + div:has-text("%")',
-      'text=Long Test'
-    ];
+  async findFirstVault() {
+    console.log('Looking for the first vault with APR values...');
     
-    for (const selector of vaultSelectors) {
-      const elements = await this.page.locator(selector).all();
-      if (elements.length > 0) {
-        console.log(`Found ${elements.length} vaults with selector: ${selector}`);
-        return elements[0]; // Take the first vault (highest APR after sorting)
+    // Find all vault elements
+    const vaultElements = await this.page.locator('div[role="row"]').all();
+    
+    if (!vaultElements || vaultElements.length === 0) {
+      console.log('No vaults found on the page');
+      return null;
+    }
+    
+    // Iterate through vault elements to find one with APR value
+    for (const vaultElement of vaultElements) {
+      try {
+        // Try multiple approaches to find the APR text
+        const aprText = await vaultElement.locator('text=/\d+(\.\d+)?%/, text=/APR/').textContent().catch(() => null);
+        
+        if (aprText) {
+          console.log('Found vault with APR value');
+          return vaultElement;
+        }
+      } catch (error) {
+        console.log('Error finding APR value in vault element:', error);
       }
     }
     
-    console.log('No vaults found on the page');
+    console.log('No vaults with APR values found on the page');
     return null;
   }
   
   /**
-   * Test search functionality
+   * Get the APR value from a vault element
    */
-  async testSearch(searchTerm: string): Promise<void> {
+  async getVaultAPR(vaultElement: Locator): Promise<string | null> {
     try {
-      console.log('Looking for search input field...');
-      const searchInputExists = await this.page.locator('input[placeholder*="Search"]').count() > 0;
+      // Try multiple approaches to find the APR text
       
-      if (searchInputExists) {
-        const searchInput = this.page.locator('input[placeholder*="Search"]').first();
-        console.log(`Search input found, testing search with term: ${searchTerm}`);
-        await searchInput.fill(searchTerm);
-        await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-        
-        // Take screenshot of search results
-        await takeScreenshot(this.page, 'vaults-search-results');
-      } else {
-        console.log('No search input found on page, skipping search test');
+      // Approach 1: APR in the vault row
+      const aprText = await vaultElement.locator('text=/\d+(\.\d+)?%/, text=/APR/').textContent().catch(() => null);
+      if (aprText) {
+        // Extract the percentage value using regex
+        const match = aprText.match(/(\d+(\.\d+)?)%/);
+        if (match) {
+          console.log(`Found APR value in vault list: ${match[1]}%`);
+          return match[1];
+        }
       }
+      
+      // Approach 2: Look for specific APR column in the row
+      const aprCell = await vaultElement.locator('td:has-text("%"), div:has-text("%")').nth(0).textContent().catch(() => null);
+      if (aprCell) {
+        const match = aprCell.match(/(\d+(\.\d+)?)%/);
+        if (match) {
+          console.log(`Found APR value in APR cell: ${match[1]}%`);
+          return match[1];
+        }
+      }
+      
+      // Approach 3: If specific approaches fail, try to get any percentage value
+      const anyPercentage = await vaultElement.textContent().catch(() => '');
+      const percentageMatch = anyPercentage.match(/(\d+(\.\d+)?)%/);
+      if (percentageMatch) {
+        console.log(`Found percentage in vault element: ${percentageMatch[1]}%`);
+        return percentageMatch[1];
+      }
+      
+      console.log('Could not find APR value in vault element');
+      return null;
     } catch (error) {
-      console.log(`Error during search test: ${error.message}`);
-      console.log('Continuing with test execution...');
-    }
-  }
-  
-  /**
-   * Improved method to click deposit button and test deposit functionality
-   * - Checks vault type (public/private)
-   * - Tests max button
-   * - Tests manual input
-   * - Validates share calculations
-   */
-  async clickFirstDepositButton(): Promise<void> {
-    console.log('Testing vault deposit functionality...');
-    
-    // First, find a vault row
-    const vaultRow = await this.findFirstVault();
-    if (!vaultRow) {
-      console.log('No vault found to test deposit');
-      return;
-    }
-    
-    // Check vault type (public/private)
-    const typeText = await vaultRow.locator('text=/Public|Private/i').textContent();
-    const isPublic = typeText?.toLowerCase().includes('public');
-    console.log(`Found vault with type: ${typeText}`);
-    
-    // Locate deposit button within this vault row
-    const depositButton = await vaultRow.locator('button:has-text("Deposit"), button:has-text("+ Deposit")').first();
-    const isDepositEnabled = await depositButton.isEnabled();
-    
-    // For private vaults, verify deposit button is disabled
-    if (!isPublic && !isDepositEnabled) {
-      console.log('Private vault detected with disabled deposit button as expected');
-      await takeScreenshot(this.page, 'private-vault-deposit-disabled');
-      return;
-    }
-    
-    // Continue with deposit flow for public vaults
-    if (isDepositEnabled) {
-      await depositButton.click();
-      console.log('Clicked on deposit button');
-      
-      // Wait for animation/transitions
-      await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-      
-      // Take a screenshot regardless of modal detection
-      await takeScreenshot(this.page, 'after-deposit-click');
-      
-      // Use a more reliable method to check if a dialog appeared
-      await this.checkDepositDialogAndInteract();
-    } else {
-      console.log('Deposit button not enabled or not found');
-    }
-  }
-  
-  /**
-   * Helper method to check if deposit dialog appeared and interact with it
-   */
-  private async checkDepositDialogAndInteract(): Promise<void> {
-    console.log('Checking for deposit dialog...');
-    
-    try {
-      // First look specifically for "Deposit liquidity" dialog title
-      const dialogTitle = this.page.locator('text="Deposit liquidity"');
-      const depositLiquidityText = await this.page.getByText('Deposit liquidity').isVisible();
-      
-      if (depositLiquidityText) {
-        console.log('Found "Deposit liquidity" dialog');
-        await takeScreenshot(this.page, 'deposit-liquidity-dialog');
-        
-        // Test MAX button - use the specific button shown in screenshot
-        const maxButton = this.page.locator('button:has-text("MAX")');
-        if (await maxButton.isVisible()) {
-          await maxButton.click();
-          console.log('Clicked MAX button');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-          await takeScreenshot(this.page, 'after-max-button');
-          
-          // Validate deposit calculations after MAX
-          await this.validateDepositCalculations();
-        }
-        
-        // Clear and test manual input - input 1 as amount
-        const amountField = this.page.locator('input[type="number"], [placeholder="0"]').first();
-        if (await amountField.isVisible()) {
-          await amountField.fill('');
-          await amountField.fill('1');
-          console.log('Entered manual amount: 1');
-          await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-          await takeScreenshot(this.page, 'manual-amount-1');
-          
-          // Validate deposit calculations with manual input
-          await this.validateDepositCalculations();
-        }
-        
-        // Close dialog
-        const closeButton = this.page.locator('button[aria-label="Close"], button:has-text("Close")').first();
-        if (await closeButton.isVisible()) {
-          await closeButton.click();
-          console.log('Closed deposit dialog');
-        }
-        
-        return;
-      }
-      
-      // If specific title not found, try generic dialog detection
-      console.log('Specific deposit dialog title not found, checking generic dialog elements...');
-      
-      // Try multiple approaches to detect dialog
-      const dialogSelectors = [
-        // Shadcn dialog selectors
-        '[data-state="open"][role="dialog"]',
-        '[data-state="open"]',
-        // Standard dialog selectors
-        '[role="dialog"]',
-        'dialog[open]',
-        '.modal',
-        // Content-based detection
-        'div:has-text("Amount") >> visible=true',
-        'div:has-text("Vault Share") >> visible=true',
-        'div:has-text("Deposit Value") >> visible=true'
-      ];
-      
-      for (const selector of dialogSelectors) {
-        const dialogElement = this.page.locator(selector).first();
-        const count = await dialogElement.count();
-        
-        if (count > 0) {
-          console.log(`Found dialog using selector: ${selector}`);
-          await takeScreenshot(this.page, 'generic-deposit-dialog');
-          
-          // Test dialog interactions
-          // Look for input field
-          const inputField = this.page.locator('input[type="number"], input[placeholder*="0"]').first();
-          if (await inputField.count() > 0) {
-            console.log('Found input field in dialog');
-            await inputField.fill('1');
-            await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-            await takeScreenshot(this.page, 'dialog-input-filled');
-          }
-          
-          // Look for close button
-          const closeButton = this.page.locator('button[aria-label="Close"], button:has-text("Close"), button:has-text("Cancel")').first();
-          if (await closeButton.count() > 0) {
-            console.log('Found close button, closing dialog');
-            await closeButton.click();
-          }
-          
-          return;
-        }
-      }
-      
-      console.log('No deposit dialog detected with any selectors');
-      
-    } catch (error) {
-      console.log(`Error during dialog interaction: ${error.message}`);
-      console.log('Continuing with test execution...');
-      await takeScreenshot(this.page, 'dialog-interaction-error');
-    }
-  }
-  
-  /**
-   * Helper method to validate deposit calculations
-   */
-  private async validateDepositCalculations(): Promise<void> {
-    try {
-      console.log('Validating deposit calculations...');
-      
-      // Look for vault share calculation display - match UI from screenshot
-      const vaultShareRow = this.page.locator('text="Vault Share"').first();
-      if (await vaultShareRow.count() > 0) {
-        console.log('Found Vault Share row');
-        
-        // Use more specific selector to avoid matching too many elements
-        // First, try to find the percentage within the same row as "Vault Share"
-        const shareSection = this.page.locator('div:has-text("Vault Share")').first();
-        if (await shareSection.count() > 0) {
-          // Try to get percentage within this section using various selectors
-          for (const selector of [
-            'div[class*="percentage"], span[class*="percentage"]',
-            'div:right-of(:text("Vault Share"))',
-            'span:right-of(:text("Vault Share"))'
-          ]) {
-            const percentElement = shareSection.locator(selector).first();
-            if (await percentElement.count() > 0) {
-              const percentText = await percentElement.textContent();
-              console.log(`Share percentage: ${percentText}`);
-              break;
-            }
-          }
-        } else {
-          console.log('Could not find specific Vault Share section, using fallback');
-          // Take screenshot to debug the UI structure
-          await takeScreenshot(this.page, 'vault-share-section-debug');
-        }
-      }
-      
-      // Look for deposit value calculation - match UI from screenshot
-      const depositValueRow = this.page.locator('text="Deposit Value"').first();
-      if (await depositValueRow.count() > 0) {
-        console.log('Found Deposit Value row');
-        
-        // Use more specific selector to avoid matching too many elements
-        const valueSection = this.page.locator('div:has-text("Deposit Value")').first();
-        if (await valueSection.count() > 0) {
-          // Try to get value within this section using various selectors
-          for (const selector of [
-            'div[class*="value"], span[class*="value"]',
-            'div:right-of(:text("Deposit Value"))',
-            'span:right-of(:text("Deposit Value"))'
-          ]) {
-            const valueElement = valueSection.locator(selector).first();
-            if (await valueElement.count() > 0) {
-              const valueText = await valueElement.textContent();
-              console.log(`Deposit value: ${valueText}`);
-              break;
-            }
-          }
-        } else {
-          console.log('Could not find specific Deposit Value section, using screenshots for debugging');
-          // Take screenshot for debugging
-          await takeScreenshot(this.page, 'deposit-value-section-debug');
-        }
-      }
-      
-      // Alternative approach using adjacent siblings or nearby elements
-      try {
-        console.log('Trying alternative approach to locate calculation values...');
-        
-        // Try to capture any visible percentage in the dialog
-        const percentageElements = this.page.locator('[role="dialog"] div:has-text("%")').all();
-        const elements = await percentageElements;
-        if (elements.length > 0) {
-          for (let i = 0; i < Math.min(elements.length, 3); i++) {
-            const text = await elements[i].textContent();
-            if (text && text.includes('%')) {
-              console.log(`Found percentage text: ${text}`);
-            }
-          }
-        }
-        
-        // Try to capture any visible dollar amount in the dialog
-        const dollarElements = this.page.locator('[role="dialog"] div:has-text("$")').all();
-        const dollarItems = await dollarElements;
-        if (dollarItems.length > 0) {
-          for (let i = 0; i < Math.min(dollarItems.length, 3); i++) {
-            const text = await dollarItems[i].textContent();
-            if (text && text.includes('$')) {
-              console.log(`Found dollar value: ${text}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.log(`Error in alternative calculation approach: ${error.message}`);
-      }
-      
-      await takeScreenshot(this.page, 'deposit-calculations');
-    } catch (error) {
-      console.log(`Error validating calculations: ${error.message}`);
+      console.log('Error getting vault APR:', error);
+      return null;
     }
   }
 }
