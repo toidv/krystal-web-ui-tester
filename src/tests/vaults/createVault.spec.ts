@@ -130,6 +130,17 @@ test.describe('Create Vault Form', () => {
       }
     }
     
+    // Helper function to check if page is still available
+    const isPageAvailable = async () => {
+      try {
+        // This will throw if page is closed
+        return !page.isClosed();
+      } catch (e) {
+        console.log('Page is closed, cannot continue test');
+        return false;
+      }
+    };
+    
     // 3. Test toggling Publish Vault
     console.log('Testing publish vault toggle');
     // Find the toggle using various selectors
@@ -142,17 +153,6 @@ test.describe('Create Vault Form', () => {
         break;
       }
     }
-    
-    // Helper function to check if page is still available
-    const isPageAvailable = async () => {
-      try {
-        // This will throw if page is closed
-        return !page.isClosed();
-      } catch (e) {
-        console.log('Page is closed, cannot continue test');
-        return false;
-      }
-    };
     
     if (publishToggle && await isPageAvailable()) {
       await publishToggle.waitFor({ state: 'visible' });
@@ -294,13 +294,26 @@ test.describe('Create Vault Form', () => {
       return;
     }
     
-    // Verify create vault button is enabled
+    // Verify create vault button is enabled - fix for the strict mode violation
     if (await isPageAvailable()) {
       for (const selector of SELECTORS.CREATE_VAULT.SUBMIT_BUTTON) {
-        const submitButton = page.locator(selector);
-        if (await submitButton.count() > 0) {
-          await expect(submitButton).toBeEnabled();
-          console.log(`Submit button found with selector: ${selector}`);
+        const submitButtons = page.locator(selector);
+        const count = await submitButtons.count();
+        
+        if (count > 0) {
+          console.log(`Found ${count} submit buttons with selector: ${selector}`);
+          
+          // If multiple buttons are found, use the last one (which is often the form submit button)
+          if (count > 1) {
+            console.log('Multiple submit buttons found, using the last one');
+            const lastButton = submitButtons.last();
+            await expect(lastButton).toBeEnabled();
+            console.log(`Verified that the last submit button is enabled`);
+          } else {
+            // Just one button, we can check it directly
+            await expect(submitButtons.first()).toBeEnabled();
+            console.log(`Verified that the submit button is enabled`);
+          }
           break;
         }
       }
