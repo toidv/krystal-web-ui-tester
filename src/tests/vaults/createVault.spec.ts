@@ -22,15 +22,11 @@ test.describe('Create Vault Form', () => {
     await vaultListPage.goto();
     await vaultListPage.waitForPageLoad();
 
-    // Take screenshot of initial vaults page
-    await takeScreenshot(page, 'vaults-page-initial');
-
     // Connect wallet and verify connection
     await connectWallet(page);
     await verifyWalletConnected(page);
   
     console.log('Wallet connected, proceeding to Create Vault test');
-    await takeScreenshot(page, 'wallet-connected-state');
 
     // Verify basic UI elements
     await vaultListPage.verifyBasicUIElements();
@@ -42,9 +38,6 @@ test.describe('Create Vault Form', () => {
     console.log('Looking for Create Vault buttons on the page...');
     const elements = await page.locator('button:has-text("Create Vault"), a:has-text("Create Vault")').count();
     console.log(`Found ${elements} Create Vault elements on the page`);
-    
-    // Take a screenshot to see what's on the page
-    await takeScreenshot(page, 'before-finding-create-vault-button');
     
     // Use a more specific selector targeting only the button, not the link
     const createVaultButton = page.getByRole('button', { name: 'Create Vault' });
@@ -69,7 +62,6 @@ test.describe('Create Vault Form', () => {
     // Wait for the create vault form to appear
     console.log('Waiting for the create vault form to appear');
     await page.waitForSelector('text="Set Name"', { timeout: TIMEOUTS.ELEMENT_APPEAR });
-    await takeScreenshot(page, 'create-vault-form');
     
     // 1. Test setting vault name
     const nameInput = page.locator(SELECTORS.CREATE_VAULT.VAULT_NAME_INPUT[0]);
@@ -82,7 +74,6 @@ test.describe('Create Vault Form', () => {
     // Use a more specific selector for the active token button (not including the dropdown options)
     const tokenSelector = 'button[aria-haspopup="menu"]:has-text("WETH"), button[aria-haspopup="menu"]:has-text("USDC")';
     await page.waitForSelector(tokenSelector, { timeout: TIMEOUTS.ELEMENT_APPEAR });
-    await takeScreenshot(page, 'token-selector-visible');
     
     // Get the text of the currently selected token - use first() to ensure we're getting only one element
     const tokenButton = page.locator(tokenSelector).first();
@@ -93,7 +84,6 @@ test.describe('Create Vault Form', () => {
     console.log('Clicking on principal token selector to open dropdown');
     await tokenButton.click();
     await page.waitForTimeout(2000); // Small wait to ensure dropdown is fully visible
-    await takeScreenshot(page, 'token-dropdown-open');
     
     // If WETH is already selected, select USDC, otherwise select WETH
     if (tokenText?.includes('WETH')) {
@@ -141,8 +131,7 @@ test.describe('Create Vault Form', () => {
     // 3. Test toggling Publish Vault
     console.log('Testing publish vault toggle');
     
-    // Try different approaches to interact with the toggle - this is the section we're fixing
-    await takeScreenshot(page, 'before-toggle-attempt');
+    // Try different approaches to interact with the toggle
     
     // First look for the toggle label and try clicking it
     const toggleLabel = page.locator(SELECTORS.CREATE_VAULT.TOGGLE_LABEL);
@@ -153,7 +142,6 @@ test.describe('Create Vault Form', () => {
         await toggleLabel.click({ force: true, timeout: 10000 });
         console.log('Successfully clicked toggle label');
         await page.waitForTimeout(1000);
-        await takeScreenshot(page, 'after-toggle-label-click');
       } catch (error) {
         console.log(`Failed to click toggle label: ${error.message}`);
       }
@@ -177,7 +165,6 @@ test.describe('Create Vault Form', () => {
         });
         console.log('Executed JavaScript click on checkbox');
         await page.waitForTimeout(1000);
-        await takeScreenshot(page, 'after-js-checkbox-click');
       } else {
         console.log('Checkbox not found');
       }
@@ -193,7 +180,6 @@ test.describe('Create Vault Form', () => {
         await switchContainer.click({ force: true, timeout: 10000 });
         console.log('Successfully clicked switch container');
         await page.waitForTimeout(1000);
-        await takeScreenshot(page, 'after-switch-container-click');
       } else {
         console.log('Switch container not found');
       }
@@ -212,7 +198,6 @@ test.describe('Create Vault Form', () => {
       
       await narrowRangeButton.waitFor({ state: 'visible' });
       await narrowRangeButton.click();
-      await takeScreenshot(page, 'narrow-range-selected');
       
       // Verify narrow range config is displayed
       await expect(page.locator('text=10.52%')).toBeVisible();
@@ -220,7 +205,6 @@ test.describe('Create Vault Form', () => {
       
       // Test selecting Wide
       await wideRangeButton.click();
-      await takeScreenshot(page, 'wide-range-selected');
       
       // Verify wide range config is displayed
       await expect(page.locator('text="Range width is calculated based on the lower and upper prices"')).toBeVisible();
@@ -242,22 +226,18 @@ test.describe('Create Vault Form', () => {
       // Click and verify Low Value option
       await lowValueOption.waitFor({ state: 'visible' });
       await lowValueOption.click();
-      await takeScreenshot(page, 'low-value-option');
       await expect(page.locator('text="≤5 USDC"')).toBeVisible();
       
       // Click and verify Moderate Value option
       await moderateValueOption.click();
-      await takeScreenshot(page, 'moderate-value-option');
       await expect(page.locator('text="≤50 USDC"')).toBeVisible();
       
       // Click and verify High Value option
       await highValueOption.click();
-      await takeScreenshot(page, 'high-value-option');
       await expect(page.locator('text="≤500 USDC"')).toBeVisible();
       
       // Click and verify Fixed option
       await fixedOption.click();
-      await takeScreenshot(page, 'fixed-option');
       await expect(page.locator('text="A specific list of pools"')).toBeVisible();
     } else {
       console.log('Liquidity Pools options not found, skipping this section');

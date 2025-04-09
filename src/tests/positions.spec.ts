@@ -26,13 +26,7 @@ test.describe('Krystal Positions Page Tests', () => {
     await connectWallet(page);
     await verifyWalletConnected(page);
     
-    // Take screenshot after wallet connection
-    await takeScreenshot(page, 'wallet-connected-positions');
-    
     console.log('Page loaded successfully');
-    
-    // Take screenshot of initial page load
-    await takeScreenshot(page, 'positions-page-initial');
     
     // Verify page title
     const pageTitle = await page.title();
@@ -75,9 +69,6 @@ test.describe('Krystal Positions Page Tests', () => {
           await expect(modal).toBeVisible({ timeout: 5000 });
           console.log('Modal/detail panel opened successfully');
           
-          // Take screenshot with modal open
-          await takeScreenshot(page, 'positions-modal-open');
-          
           // Close the modal if there's a close button
           const closeButton = await page.locator('.modal button, [role="dialog"] button, .detail-panel button').first();
           if (await closeButton.isVisible()) {
@@ -100,9 +91,6 @@ test.describe('Krystal Positions Page Tests', () => {
       console.log('Search input found, testing search functionality');
       await searchInput.fill('ETH');
       await page.waitForTimeout(1000); // Wait for search results
-      
-      // Take screenshot of search results
-      await takeScreenshot(page, 'positions-search-results');
     } else {
       console.log('No search input found on page');
     }
