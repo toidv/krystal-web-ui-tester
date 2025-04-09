@@ -14,11 +14,11 @@ export const URLS = {
  * Timeouts for tests
  */
 export const TIMEOUTS = {
-  PAGE_LOAD: 120000,     // Increased from 60000
-  ELEMENT_APPEAR: 60000, // Increased from 30000
-  ANIMATION: 15000,      // Unchanged from previous
-  RENDER: 15000,         // Unchanged from previous
-  WALLET_CONNECTION: 60000 // Increased from 30000
+  PAGE_LOAD: 10000,     
+  ELEMENT_APPEAR: 10000,
+  ANIMATION: 10000,
+  RENDER: 10000,
+  WALLET_CONNECTION: 10000
 };
 
 /**

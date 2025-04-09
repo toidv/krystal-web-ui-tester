@@ -144,9 +144,6 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
         await button.click();
         console.log('Clicked on Connect Wallet button');
         buttonClicked = true;
-        
-        // Take screenshot of wallet provider selection menu
-        await takeScreenshot(page, 'wallet-provider-menu');
         break;
       }
     }
@@ -255,23 +252,7 @@ export async function connectWallet(page: Page, walletType: 'MetaMask' | 'Rabby'
   
   // 4. Close any open dialogs or menus that might be left open
   try {
-    // Look for dialog close buttons, backdrop overlays, or escape key press
-    const closeButton = page.locator('.modal-close, [aria-label="Close"], button:has([data-icon="close"]), .close-button, .dialog-close, .wallet-close').first();
-    if (await closeButton.isVisible({ timeout: 2000 })) {
-      console.log('Found close button for dialog, clicking it');
-      await closeButton.click();
-    } else {
-      // Try clicking on backdrop/overlay to close modal
-      const backdrop = page.locator('.backdrop, .overlay, .modal-backdrop, [role="presentation"]').first();
-      if (await backdrop.isVisible({ timeout: 1000 })) {
-        console.log('Found backdrop/overlay, clicking it to close dialog');
-        await backdrop.click({ position: { x: 10, y: 10 } });
-      } else {
-        // Try pressing Escape key as last resort
-        console.log('No close button or backdrop found, pressing Escape key');
-        await page.keyboard.press('Escape');
-      }
-    }
+    await page.keyboard.press('Escape');
   } catch (error) {
     console.log('No dialogs needed to be closed or failed to close dialog:', error);
   }
@@ -307,9 +288,6 @@ export async function verifyWalletConnected(page: Page): Promise<boolean> {
         const text = await addressElement.textContent();
         console.log(`Wallet address displayed as: ${text}`);
         
-        // Take screenshot showing connected wallet
-        await takeScreenshot(page, 'wallet-connected-verified');
-        
         addressFound = true;
         break;
       }
@@ -325,9 +303,6 @@ export async function verifyWalletConnected(page: Page): Promise<boolean> {
       const connectButton = page.locator(SELECTORS.CONNECT_WALLET_BUTTON[0]).first();
       if (await connectButton.isVisible()) {
         console.error('Connect Wallet button still visible - connection may have failed');
-        
-        // Take screenshot of failed connection state
-        await takeScreenshot(page, 'wallet-connection-failed');
       }
       
       return false;
