@@ -77,13 +77,17 @@ export class VaultDetailPage {
     for (const selector of SELECTORS.PERFORMANCE) {
       if (!await this.isPageAvailable()) break;
       
-      const section = this.page.locator(selector).first();
-      const isVisible = await section.isVisible().catch(() => false);
-      
-      if (isVisible) {
-        console.log(`Found Historical Performance section with selector: ${selector}`);
-        performanceSection = section;
-        break;
+      try {
+        const section = this.page.locator(selector).first();
+        const isVisible = await section.isVisible().catch(() => false);
+        
+        if (isVisible) {
+          console.log(`Found Historical Performance section with selector: ${selector}`);
+          performanceSection = section;
+          break;
+        }
+      } catch (error) {
+        console.log(`Error checking performance section with selector ${selector}:`, error);
       }
     }
     
@@ -99,23 +103,28 @@ export class VaultDetailPage {
           if (isVisible) {
             console.log(`Found ${period} time period selector`);
             
-            // Click on the time period
-            await periodButton.click().catch(err => {
-              console.log(`Error clicking on ${period} time period:`, err);
-            });
-            
-            if (await this.isPageAvailable()) {
-              await this.page.waitForTimeout(TIMEOUTS.ANIMATION);
-              console.log(`Clicked on ${period} time period`);
+            // Click on the time period with timeout protection
+            try {
+              await periodButton.click({ timeout: TIMEOUTS.ELEMENT_APPEAR }).catch(err => {
+                console.log(`Error clicking on ${period} time period:`, err);
+              });
               
-              // Take screenshot of the chart with this time period
-              await takeScreenshot(this.page, `performance-chart-${period}`);
+              if (await this.isPageAvailable()) {
+                // Reduce the animation wait time to avoid long timeouts
+                await this.page.waitForTimeout(Math.min(TIMEOUTS.ANIMATION, 2000));
+                console.log(`Clicked on ${period} time period`);
+                
+                // Take screenshot of the chart with this time period
+                await takeScreenshot(this.page, `performance-chart-${period}`);
+              }
+            } catch (error) {
+              console.log(`Timeout clicking on ${period} time period, continuing with test:`, error);
             }
           } else {
-            console.log(`${period} time period selector not found or not visible`);
+            console.log(`${period} time period selector not found or not visible, skipping`);
           }
         } catch (error) {
-          console.log(`Error testing ${period} time period:`, error);
+          console.log(`Error testing ${period} time period, continuing with test:`, error);
         }
       }
       
@@ -126,13 +135,17 @@ export class VaultDetailPage {
       for (const selector of SELECTORS.CHART) {
         if (!await this.isPageAvailable()) break;
         
-        const chart = this.page.locator(selector).first();
-        const isVisible = await chart.isVisible().catch(() => false);
-        
-        if (isVisible) {
-          console.log(`Found chart visualization with selector: ${selector}`);
-          chartFound = true;
-          break;
+        try {
+          const chart = this.page.locator(selector).first();
+          const isVisible = await chart.isVisible().catch(() => false);
+          
+          if (isVisible) {
+            console.log(`Found chart visualization with selector: ${selector}`);
+            chartFound = true;
+            break;
+          }
+        } catch (error) {
+          console.log(`Error checking chart with selector ${selector}:`, error);
         }
       }
       

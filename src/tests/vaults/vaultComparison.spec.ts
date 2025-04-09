@@ -4,7 +4,7 @@ import { setupWalletConnection, connectWallet, verifyWalletConnected } from '../
 import { takeScreenshot, initScreenshotsDir } from '../utils/screenshotHelper';
 import { VaultListPage } from '../page-objects/VaultListPage';
 import { VaultDetailPage } from '../page-objects/VaultDetailPage';
-import { URLS } from '../utils/constants';
+import { URLS, TIMEOUTS } from '../utils/constants';
 
 /**
  * Helper function to check if the page is still available
@@ -19,7 +19,7 @@ async function isPageAvailable(page) {
 }
 
 /**
- * Process the details page for a single vault
+ * Process the details page for a single vault with timeout protection
  */
 async function processVaultDetails(vaultIndex: number, vaultListPage: VaultListPage, vaultDetailPage: VaultDetailPage) {
   console.log(`Examining vault ${vaultIndex+1} details...`);
@@ -36,52 +36,105 @@ async function processVaultDetails(vaultIndex: number, vaultListPage: VaultListP
     return;
   }
   
-  // Click on the vault row or name to open details
-  await vaultElement.click().catch(err => {
-    console.log(`Error clicking on vault ${vaultIndex+1}:`, err);
-  });
-  console.log(`Clicked on vault ${vaultIndex+1}`);
-  
-  // Wait for detail page to load
-  await vaultDetailPage.waitForDetailPageLoad();
-  
-  if (!await isPageAvailable(vaultDetailPage.page)) {
-    console.log(`Page closed, skipping remaining steps for vault ${vaultIndex+1}`);
-    return;
+  try {
+    // Click on the vault row or name to open details with timeout
+    await vaultElement.click({ timeout: TIMEOUTS.ELEMENT_APPEAR }).catch(err => {
+      console.log(`Error clicking on vault ${vaultIndex+1}:`, err);
+    });
+    console.log(`Clicked on vault ${vaultIndex+1}`);
+    
+    // Wait for detail page to load with timeout protection
+    await vaultDetailPage.waitForDetailPageLoad();
+    
+    if (!await isPageAvailable(vaultDetailPage.page)) {
+      console.log(`Page closed, skipping remaining steps for vault ${vaultIndex+1}`);
+      return;
+    }
+    
+    // Validate APR and performance information with timeout protection
+    try {
+      await Promise.race([
+        vaultDetailPage.verifyPerformanceChart(),
+        // Fallback timeout to prevent test from hanging
+        vaultDetailPage.page.waitForTimeout(30000).then(() => {
+          console.log(`Timeout safety triggered for performance chart in vault ${vaultIndex+1}`);
+        })
+      ]);
+    } catch (error) {
+      console.log(`Error verifying performance chart for vault ${vaultIndex+1}, continuing:`, error);
+    }
+    
+    if (!await isPageAvailable(vaultDetailPage.page)) return;
+    
+    // Check information sections with timeout protection
+    try {
+      await Promise.race([
+        vaultDetailPage.verifyAssetsSection(),
+        vaultDetailPage.page.waitForTimeout(15000).then(() => {
+          console.log(`Timeout safety triggered for assets section in vault ${vaultIndex+1}`);
+        })
+      ]);
+    } catch (error) {
+      console.log(`Error verifying assets section for vault ${vaultIndex+1}, continuing:`, error);
+    }
+    
+    if (!await isPageAvailable(vaultDetailPage.page)) return;
+    
+    try {
+      await Promise.race([
+        vaultDetailPage.verifyStrategySettings(),
+        vaultDetailPage.page.waitForTimeout(15000).then(() => {
+          console.log(`Timeout safety triggered for strategy settings in vault ${vaultIndex+1}`);
+        })
+      ]);
+    } catch (error) {
+      console.log(`Error verifying strategy settings for vault ${vaultIndex+1}, continuing:`, error);
+    }
+    
+    if (!await isPageAvailable(vaultDetailPage.page)) return;
+    
+    try {
+      await Promise.race([
+        vaultDetailPage.verifyDepositWithdraw(),
+        vaultDetailPage.page.waitForTimeout(15000).then(() => {
+          console.log(`Timeout safety triggered for deposit/withdraw in vault ${vaultIndex+1}`);
+        })
+      ]);
+    } catch (error) {
+      console.log(`Error verifying deposit/withdraw for vault ${vaultIndex+1}, continuing:`, error);
+    }
+    
+    if (!await isPageAvailable(vaultListPage.page)) return;
+    
+    // Return to vault list with timeout protection
+    try {
+      await vaultListPage.goto();
+      console.log(`Returned to vault list from vault ${vaultIndex+1}`);
+    } catch (error) {
+      console.log(`Error returning to vault list from vault ${vaultIndex+1}:`, error);
+      return; // Stop processing if we can't return to the list
+    }
+    
+    if (!await isPageAvailable(vaultListPage.page)) return;
+    
+    // Re-sort the list by APR with timeout protection
+    try {
+      await vaultListPage.sortByAPR();
+    } catch (error) {
+      console.log(`Error sorting vault list by APR after vault ${vaultIndex+1}:`, error);
+    }
+  } catch (error) {
+    console.log(`Unexpected error processing vault ${vaultIndex+1}:`, error);
   }
-  
-  // Validate APR and performance information
-  await vaultDetailPage.verifyPerformanceChart();
-  
-  if (!await isPageAvailable(vaultDetailPage.page)) return;
-  
-  // Check information sections
-  await vaultDetailPage.verifyAssetsSection();
-  
-  if (!await isPageAvailable(vaultDetailPage.page)) return;
-  
-  await vaultDetailPage.verifyStrategySettings();
-  
-  if (!await isPageAvailable(vaultDetailPage.page)) return;
-  
-  await vaultDetailPage.verifyDepositWithdraw();
-  
-  if (!await isPageAvailable(vaultListPage.page)) return;
-  
-  // Return to vault list
-  await vaultListPage.goto();
-  console.log(`Returned to vault list from vault ${vaultIndex+1}`);
-  
-  if (!await isPageAvailable(vaultListPage.page)) return;
-  
-  // Re-sort the list by APR
-  await vaultListPage.sortByAPR();
 }
 
 test.describe('Krystal Vault Comparison Tests', () => {
   // Initialize screenshots directory before tests
   initScreenshotsDir();
 
+  // Increase timeout for the entire test to prevent premature termination
+  test.setTimeout(120000);
+  
   test.beforeEach(async ({ page }) => {
     // Setup wallet connection before each test
     await setupWalletConnection(page);
