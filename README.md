@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -59,6 +60,57 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Playwright (for testing)
+
+## Testing Framework
+
+This project includes comprehensive UI testing with Playwright. The tests are located in the `src/tests` directory.
+
+### Test Structure
+
+- `src/tests/positions.spec.ts`: Tests for the positions page
+- `src/tests/vaults/`: Contains multiple test files for vaults functionality
+  - `vaultBasic.spec.ts`: Basic vault functionality tests
+  - `vaultDetail.spec.ts`: Detailed vault page tests
+  - `vaultComparison.spec.ts`: Tests for comparing multiple vaults
+  - `createVault.spec.ts`: Tests for the vault creation process
+
+### Page Objects
+
+The tests use the Page Object Model pattern with page objects defined in:
+- `src/tests/page-objects/VaultListPage.ts`
+- `src/tests/page-objects/VaultDetailPage.ts`
+
+### Utility Functions
+
+- `src/tests/utils/setupWallet.ts`: Functions for wallet connection setup
+- `src/tests/utils/screenshotHelper.ts`: Functions for taking and managing screenshots
+- `src/tests/utils/constants.ts`: Shared constants including URLs, timeouts, and selectors
+
+### Running Tests
+
+```bash
+# Run all tests
+npx playwright test
+
+# Run tests with UI mode
+npx playwright test --ui
+
+# Run specific test files
+npx playwright test vaults/vaultBasic.spec.ts
+npx playwright test positions.spec.ts
+
+# View test report
+npx playwright show-report
+```
+
+### Test Configuration
+
+The tests are configured to run against either:
+- Local development environment: `http://localhost:3000`
+- Development preview: `https://dev-krystal-web-pr-3207.krystal.team`
+
+Tests include robust error handling to manage page availability and element visibility issues.
 
 ## How can I deploy this project?
 
